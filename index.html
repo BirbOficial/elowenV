@@ -9,7 +9,34 @@
 </head>
 <body>
 
-<audio id="ambient" loop src="ambient.mp3"></audio>
+<!-- CUSTOM CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- FIXED TOP LOGO -->
+<div id="top-logo">
+  <svg id="scp-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <!-- SCP logo approximation in tron red style -->
+    <circle cx="100" cy="100" r="90" stroke="#cc0000" stroke-width="3" fill="none" opacity="0.9"/>
+    <circle cx="100" cy="100" r="70" stroke="#cc0000" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <circle cx="100" cy="100" r="50" stroke="#cc0000" stroke-width="1" fill="none" opacity="0.3"/>
+    <!-- Arrow pointing up-left -->
+    <path d="M100 100 L40 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M40 40 L40 65 M40 40 L65 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Arrow pointing up-right -->
+    <path d="M100 100 L160 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M160 40 L160 65 M160 40 L135 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Arrow pointing down -->
+    <path d="M100 100 L100 175" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M100 175 L85 155 M100 175 L115 155" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Center dot -->
+    <circle cx="100" cy="100" r="6" fill="#cc0000" opacity="0.9"/>
+    <circle cx="100" cy="100" r="3" fill="#ff4444"/>
+  </svg>
+  <span id="logo-label">SCP FOUNDATION</span>
+</div>
+
+<audio id="ambient" loop src="ambient.mp3" preload="auto"></audio>
 <canvas id="tron-canvas"></canvas>
 
 <!-- LOGIN -->
@@ -25,13 +52,21 @@
     <label>SENHA</label>
     <input type="password" id="login-pass" autocomplete="off">
     <button class="login-btn" id="login-btn">AUTENTICAR</button>
-    <div class="login-error" id="login-error">⛔ ACESSO NEGADO — CREDENCIAIS INVÁLIDAS</div>
+    <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- FRACTAL -->
-<div id="fractal-screen">
-  <img id="fractal-img" src="fractal.png" alt="">
+<!-- FRACTAL POPUP -->
+<div id="fractal-overlay"></div>
+<div id="fractal-popup">
+  <div id="fractal-popup-inner">
+    <div id="fractal-header">
+      <span>⚠ AVISO DO SISTEMA</span>
+      <span id="fractal-code">ERR-0x█████</span>
+    </div>
+    <img id="fractal-img" src="fractal.png" alt="">
+    <div id="fractal-footer">ACESSO NEGADO — REGISTRANDO TENTATIVA</div>
+  </div>
 </div>
 
 <!-- MAIN SITE -->

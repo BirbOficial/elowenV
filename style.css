@@ -12,7 +12,85 @@ html, body {
   color: var(--white);
   font-family: 'Share Tech Mono', monospace;
   overflow-x: hidden;
-  cursor: crosshair;
+  cursor: none;
+}
+
+/* ── CUSTOM CURSOR ── */
+#cursor-dot {
+  position: fixed;
+  width: 6px; height: 6px;
+  background: var(--red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px var(--red), 0 0 16px var(--red-glow);
+  transition: transform 0.05s;
+}
+#cursor-ring {
+  position: fixed;
+  width: 32px; height: 32px;
+  border: 1px solid var(--red);
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: width 0.15s, height 0.15s, opacity 0.15s, border-color 0.15s;
+  opacity: 0.7;
+}
+/* crosshair lines */
+#cursor-ring::before,
+#cursor-ring::after {
+  content: '';
+  position: absolute;
+  background: var(--red);
+  opacity: 0.5;
+}
+#cursor-ring::before {
+  width: 1px; height: 8px;
+  left: 50%; top: -10px;
+  transform: translateX(-50%);
+  box-shadow: 0 40px 0 var(--red);
+}
+#cursor-ring::after {
+  width: 8px; height: 1px;
+  top: 50%; left: -10px;
+  transform: translateY(-50%);
+  box-shadow: 40px 0 0 var(--red);
+}
+body:hover #cursor-ring { opacity: 0.7; }
+.cursor-hover #cursor-ring {
+  width: 48px; height: 48px;
+  border-color: #ff4444;
+  opacity: 1;
+}
+
+/* ── TOP LOGO ── */
+#top-logo {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 8000;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.95), transparent);
+  pointer-events: none;
+}
+#scp-logo {
+  filter: drop-shadow(0 0 8px var(--red-glow));
+  animation: logo-pulse 3s ease-in-out infinite;
+}
+@keyframes logo-pulse {
+  0%,100% { opacity: 0.85; filter: drop-shadow(0 0 6px var(--red-glow)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 14px rgba(204,0,0,0.6)); }
+}
+#logo-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 10px;
+  letter-spacing: .5em;
+  color: var(--red-dim);
+  text-transform: uppercase;
 }
 
 /* ── TRON OVERLAY ── */
@@ -31,6 +109,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding-top: 56px;
 }
 .login-top {
   font-family: 'Orbitron', monospace;
@@ -80,6 +159,7 @@ html, body {
   outline: none;
   letter-spacing: .1em;
   transition: border-color .2s, box-shadow .2s;
+  cursor: none;
 }
 .login-box input:focus {
   border-color: var(--red);
@@ -95,7 +175,7 @@ html, body {
   font-size: 11px;
   letter-spacing: .35em;
   padding: 10px;
-  cursor: pointer;
+  cursor: none;
   transition: color .25s, box-shadow .25s;
   position: relative;
   overflow: hidden;
@@ -122,21 +202,61 @@ html, body {
   transition: opacity .3s;
 }
 
-/* ── FRACTAL SCREEN ── */
-#fractal-screen {
+/* ── FRACTAL POPUP ── */
+#fractal-overlay {
   position: fixed; inset: 0;
-  z-index: 4000;
+  background: rgba(0,0,0,0.85);
+  z-index: 4500;
   display: none;
+  backdrop-filter: blur(2px);
+}
+#fractal-popup {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.92);
+  z-index: 4600;
+  display: none;
+  width: min(600px, 90vw);
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+#fractal-popup.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+#fractal-popup-inner {
+  border: 1px solid var(--red);
   background: #000;
+  box-shadow: 0 0 40px rgba(204,0,0,0.4), inset 0 0 20px rgba(204,0,0,0.05);
+}
+#fractal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--red-dim);
+  font-family: 'Orbitron', monospace;
+  font-size: 9px;
+  letter-spacing: .3em;
+  color: var(--red);
+  background: rgba(20,0,0,0.8);
 }
 #fractal-img {
-  width: 100%; height: 100%;
-  object-fit: cover;
-  transition: opacity 2.5s ease;
+  width: 100%;
+  display: block;
+}
+#fractal-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--red-dim);
+  font-size: 9px;
+  letter-spacing: .25em;
+  color: var(--red-dim);
+  text-align: center;
+  animation: blink 1.2s infinite;
 }
 
 /* ── MAIN SITE ── */
-#main-site { display: none; min-height: 100vh; }
+#main-site { display: none; min-height: 100vh; padding-top: 56px; }
 
 /* ── CHARACTER CANVAS (fixed left) ── */
 #char-wrapper {
@@ -273,7 +393,7 @@ html, body {
 .sec-body .redacted {
   background: #550000; color: transparent;
   user-select: none; border-radius: 2px;
-  padding: 0 4px; cursor: not-allowed;
+  padding: 0 4px; cursor: none;
 }
 .traits { list-style:none; display:flex; flex-direction:column; gap:9px; margin-top:6px; }
 .traits li {
@@ -300,7 +420,7 @@ html, body {
 }
 #vol-slider {
   -webkit-appearance: none; appearance: none;
-  width: 80px; height: 2px; background: #330000; outline: none; cursor: pointer;
+  width: 80px; height: 2px; background: #330000; outline: none; cursor: none;
 }
 #vol-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
