@@ -107,12 +107,11 @@ ambientEl.volume = 0.70;
 let audioStarted = false;
 function startAudio(){
   if(audioStarted) return;
-  audioStarted = true;
-  ambientEl.play().catch(()=>{});
+  ambientEl.play().then(()=>{ audioStarted = true; }).catch(()=>{});
 }
-// Start audio on ANY interaction — click, keydown, touchstart
+// Start audio on ANY interaction — retry until it works (no once:true)
 ['click','keydown','touchstart','mousedown'].forEach(ev =>
-  document.addEventListener(ev, startAudio, { once: true })
+  document.addEventListener(ev, startAudio)
 );
 
 // ══════════════════════════════════════════
@@ -142,6 +141,7 @@ function tryLogin(){
     showFractalPopup(false);
     return;
   }
+  err.textContent = '';
   err.style.opacity = 0;
   acceptLogin();
 }
@@ -155,8 +155,7 @@ function showFractalPopup(isSuccess){
   requestAnimationFrame(() => popup.classList.add('visible'));
 
   if(!isSuccess){
-    // Wrong password — just show popup, stays until F5
-    document.getElementById('login-screen').style.pointerEvents = 'none';
+    // Wrong password — show popup, user can still interact (close with F5 or reload)
     return;
   }
 }
@@ -266,11 +265,12 @@ function loadGIF(){
 
 // ── Try gifuct for scroll-controlled frames
 let gifFrames = [];
+let gifGlobalWidth = 720;
+let gifGlobalHeight = 720;
 let currentGifFrame = -1;
 const offscreenCanvas = document.createElement('canvas');
 const offCtx = offscreenCanvas.getContext('2d');
 
-// Accumulated canvas for disposal method 1
 const compositeCanvas = document.createElement('canvas');
 compositeCanvas.width = 720;
 compositeCanvas.height = 720;
@@ -292,15 +292,17 @@ function fetchAndParseGIF(){
     })
     .then(buf => {
       const gif = window.parseGIF(buf);
+      // Store global dimensions from GIF header
+      gifGlobalWidth  = gif.lsd.width;
+      gifGlobalHeight = gif.lsd.height;
       const frames = window.decompressFrames(gif, true);
       if(!frames || frames.length === 0) return;
       gifFrames = frames;
 
-      // Set offscreen canvas to first frame dimensions
-      offscreenCanvas.width  = frames[0].dims.width;
-      offscreenCanvas.height = frames[0].dims.height;
+      offscreenCanvas.width  = gifGlobalWidth;
+      offscreenCanvas.height = gifGlobalHeight;
 
-      // Draw first frame
+      compositeCtx.clearRect(0, 0, 720, 720);
       renderGifFrame(0);
       window.addEventListener('scroll', onScrollGIF, {passive:true});
     })
@@ -315,27 +317,32 @@ function renderGifFrame(index){
   const canvas = document.getElementById('char-canvas');
   const ctx    = canvas.getContext('2d');
 
-  // Draw patch to offscreen
-  const imageData = offCtx.createImageData(frame.dims.width, frame.dims.height);
-  imageData.data.set(frame.patch);
-  offCtx.putImageData(imageData, 0, 0);
-
-  // For disposal=2 (restore to background), clear composite first
+  // disposal=2: clear to background before drawing
   if(frame.disposalType === 2){
     compositeCtx.clearRect(0, 0, 720, 720);
   }
 
-  // Scale offscreen patch onto composite canvas at correct position
+  // Draw patch at correct position on offscreen (full GIF size)
+  const imageData = offCtx.createImageData(frame.dims.width, frame.dims.height);
+  imageData.data.set(frame.patch);
+
+  // Use a temp canvas for just the patch
+  const patchCanvas = document.createElement('canvas');
+  patchCanvas.width  = frame.dims.width;
+  patchCanvas.height = frame.dims.height;
+  patchCanvas.getContext('2d').putImageData(imageData, 0, 0);
+
+  // Scale patch position+size from GIF coords to 720x720
+  const scaleX = 720 / gifGlobalWidth;
+  const scaleY = 720 / gifGlobalHeight;
   compositeCtx.drawImage(
-    offscreenCanvas,
-    0, 0, frame.dims.width, frame.dims.height,
-    frame.dims.left * (720 / gifFrames[0].dims.width),
-    frame.dims.top  * (720 / gifFrames[0].dims.height),
-    frame.dims.width  * (720 / gifFrames[0].dims.width),
-    frame.dims.height * (720 / gifFrames[0].dims.height)
+    patchCanvas,
+    frame.dims.left * scaleX,
+    frame.dims.top  * scaleY,
+    frame.dims.width  * scaleX,
+    frame.dims.height * scaleY
   );
 
-  // Draw composite to main canvas
   ctx.clearRect(0, 0, 720, 720);
   ctx.drawImage(compositeCanvas, 0, 0);
 }
