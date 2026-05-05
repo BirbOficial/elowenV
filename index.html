@@ -1,119 +1,347 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/gif" href="terminallogo.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SCiPNET TERMINAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 html, body { width:100%; height:100%; overflow:hidden; background:#000; cursor:none; }
+
+/* ── CUSTOM CURSOR ── */
+#cursor {
+  position: fixed;
+  width: 18px; height: 18px;
+  border: 1px solid #e80400;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: transform 0.08s ease, opacity 0.3s;
+  box-shadow: 0 0 6px #e8040088;
+}
+#cursor::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 3px; height: 3px;
+  background: #e80400;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ── SCANLINES (top layer) ── */
+#scanlines {
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+  animation: flicker-scan 8s infinite;
+}
+@keyframes flicker-scan {
+  0%,96%,100% { opacity:1 }
+  97% { opacity:0.82 }
+  98% { opacity:0.95 }
+  99% { opacity:0.78 }
+}
+
+/* ── VIGNETTE ── */
+#vignette {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 40%, rgba(0,0,0,0.72) 100%);
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* ── HORIZONTAL GLITCH LINE ── */
+#glitch-line {
+  position: fixed;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e8040066, transparent);
+  pointer-events: none;
+  z-index: 9996;
+  opacity: 0;
+  top: 30%;
+  animation: glitch-travel 12s infinite 4s;
+}
+@keyframes glitch-travel {
+  0%   { top:10%; opacity:0; }
+  5%   { opacity:0.7; }
+  95%  { top:90%; opacity:0.4; }
+  100% { top:90%; opacity:0; }
+}
+
+/* ── CORNER DECORATIONS ── */
+.corner {
+  position: fixed;
+  width: 40px; height: 40px;
+  pointer-events: none;
+  z-index: 9995;
+  opacity: 0.5;
+}
+.corner--tl { top:16px; left:16px; border-top:1px solid #e80400; border-left:1px solid #e80400; }
+.corner--tr { top:16px; right:16px; border-top:1px solid #e80400; border-right:1px solid #e80400; }
+.corner--bl { bottom:16px; left:16px; border-bottom:1px solid #e80400; border-left:1px solid #e80400; }
+.corner--br { bottom:16px; right:16px; border-bottom:1px solid #e80400; border-right:1px solid #e80400; }
+
+/* ── STATUS BAR ── */
+#status-bar {
+  position: fixed;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: #4a0000;
+  pointer-events: none;
+  z-index: 9995;
+  display: flex;
+  gap: 24px;
+}
+#status-bar span { animation: status-blink 3s infinite; }
+#status-bar span:nth-child(2) { animation-delay: 1s; }
+#status-bar span:nth-child(3) { animation-delay: 2s; }
+@keyframes status-blink { 0%,80%,100%{opacity:1} 90%{opacity:0.3} }
+
+/* ── CLASSIFICATION STAMP ── */
+#classif {
+  position: fixed;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: #3a0000;
+  pointer-events: none;
+  z-index: 9995;
+  border: 1px solid #1a0000;
+  padding: 3px 16px;
+}
+
+/* ── MAIN CANVAS ── */
+#fx {
+  position:fixed; inset:0;
+  z-index: 1;
+}
+
+/* ── UI LAYER ── */
+#root {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+  z-index: 10;
+}
+
+/* ── PROMPT ── */
+#click-prompt {
+  pointer-events:all;
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap: 32px;
+}
+
+#prompt-logo {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: #3a0000;
+  text-align: center;
+  line-height: 2;
+  animation: fade-pulse 4s ease-in-out infinite;
+}
+
+#prompt-sigil {
+  width: 120px; height: 120px;
+  position: relative;
+  animation: sigil-spin 20s linear infinite;
+}
+
+#prompt-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: #5a0000;
+  animation: float-prompt 3s ease-in-out infinite;
+  text-align: center;
+}
+
+@keyframes float-prompt {
+  0%,100% { transform:translateY(0); opacity:0.4; }
+  50%      { transform:translateY(-7px); opacity:0.8; }
+}
+@keyframes fade-pulse {
+  0%,100% { opacity:0.3 }
+  50%      { opacity:0.7 }
+}
+@keyframes sigil-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── TERMINAL ── */
+#terminal {
+  position:absolute; inset:0;
+  padding: clamp(20px,3.5vw,48px) clamp(24px,4.5vw,64px);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #e80400;
+  text-shadow: 0 0 8px #e8040088;
+  overflow:hidden;
+  opacity:0;
+  display:none;
+}
+
+/* ── DIALOG ── */
+#dialog {
+  display:none;
+  position:absolute;
+}
+
+/* ── REDIRECT ── */
+#redir {
+  display:none;
+  position:absolute; inset:0;
+  flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:20px;
+}
+
+/* ── KEYPRESS HINT (shown during command phase) ── */
+#key-hint {
+  position: fixed;
+  bottom: 42px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: #3a0000;
+  pointer-events: none;
+  z-index: 9995;
+  display: none;
+  animation: float-prompt 2.5s ease-in-out infinite;
+}
 </style>
 </head>
 <body>
+
+<!-- Atmosphere layers -->
+<div id="cursor"></div>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+<div id="glitch-line"></div>
+<div class="corner corner--tl"></div>
+<div class="corner corner--tr"></div>
+<div class="corner corner--bl"></div>
+<div class="corner corner--br"></div>
+
+<div id="classif">SCP FOUNDATION // SCiPNET // AUTHORIZED ACCESS ONLY</div>
+<div id="status-bar">
+  <span>NODE: SCP-NET-07</span>
+  <span>ENC: AES-256-GHOST</span>
+  <span>STATUS: SECURE</span>
+</div>
+<div id="key-hint">[ PRESS ANY KEY TO INPUT ]</div>
+
 <canvas id="fx"></canvas>
 
-<div id="root" style="
-  position:fixed;inset:0;
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:none;z-index:10;
-">
-  <!-- click prompt -->
-  <div id="click-prompt" style="pointer-events:all;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-    <span id="prompt-label"></span>
+<div id="root">
+  <div id="click-prompt" style="pointer-events:all;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;">
+
+    <div id="prompt-logo">
+      SCP FOUNDATION<br>
+      SECURE COMPUTING INFRASTRUCTURE PROTOCOL NETWORK<br>
+      ── TERMINAL ACCESS ──
+    </div>
+
+    <span id="prompt-label">CLIQUE EM QUALQUER LUGAR</span>
   </div>
 
-  <!-- terminal -->
-  <div id="terminal" style="display:none;position:absolute;inset:0;padding:0;overflow:hidden;"></div>
-
-  <!-- dialog -->
-  <div id="dialog" style="display:none;position:absolute;"></div>
-
-  <!-- redirect bar -->
-  <div id="redir" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:16px;"></div>
+  <div id="terminal"></div>
+  <div id="dialog"></div>
+  <div id="redir"></div>
 </div>
 
 <script>
 // ╔══════════════════════════════════════════════════════════════════════╗
 // ║                  ★  CONFIGURAÇÃO DA CUTSCENE  ★                    ║
-// ║  Edite apenas este bloco. Nada mais precisa ser tocado.             ║
 // ╚══════════════════════════════════════════════════════════════════════╝
-
 const CFG = {
-
-  // ── PALETA ──────────────────────────────────────────────────────────
   colors: {
-    bg:         '#000000',   // fundo da tela
-    primary:    '#e80400',   // verde fósforo principal
-    dim:        '#8c0000',   // verde escuro (linhas de boot secundárias)
-    bright:     '#ff0000',   // verde brilhante (títulos, bordas)
-    accent:     '#e82e00',   // âmbar (avisos)
-    dialog_bg:  '#1f0209',   // fundo da caixa de diálogo
-    dialog_border: '#e80400',
-    dialog_header_bg: '#e80400',
+    bg:                 '#000000',
+    primary:            '#e80400',
+    dim:                '#6a0000',
+    bright:             '#ff2200',
+    accent:             '#e82e00',
+    dialog_bg:          '#0d0000',
+    dialog_border:      '#e80400',
+    dialog_header_bg:   '#e80400',
     dialog_header_text: '#000000',
-    redir_text: '#e804003',
-    redir_bar:  '#e80400',
-    prompt_text:'#1a4d1a',   // texto "clique em qualquer lugar"
+    redir_text:         '#e80400',
+    redir_bar:          '#e80400',
+    prompt_text:        '#3a0000',
   },
 
-  // ── TIPOGRAFIA ───────────────────────────────────────────────────────
   font: {
-    family: '"Courier New", Courier, monospace',
-    size:   '14px',           // tamanho base do terminal
-    line_height: '1.6',
+    family:      '"Share Tech Mono", monospace',
+    size:        '13px',
+    line_height: '1.7',
   },
 
-  // ── PROMPT INICIAL ───────────────────────────────────────────────────
   prompt: {
-    texts: ['clique em qualquer lugar', 'aperte qualquer tecla'],
-    toggle_ms: 3000,          // intervalo de alternância entre os textos
-    float_amplitude: '7px',   // altura da animação flutuante
-    float_duration: '3s',
-    font_size: '13px',
-    letter_spacing: '0.3em',
+    texts:           ['CLIQUE EM QUALQUER LUGAR', 'APERTE QUALQUER TECLA'],
+    toggle_ms:       2800,
+    float_amplitude: '7px',
+    float_duration:  '3s',
+    font_size:       '11px',
+    letter_spacing:  '0.4em',
   },
 
-  // ── CRT EFEITOS ──────────────────────────────────────────────────────
   crt: {
-    scanline_opacity:   0.14,  // 0 = sem scanlines, 1 = muito pesado
-    vignette_strength:  0.55,  // escuridão nas bordas (0–1)
-    flicker:            true,  // piscar leve de fósforo
-    flicker_intensity:  0.07,  // quanto varia (0.01 = sutil, 0.1 = agitado)
-    curvature:          true,  // leve distorção de barril
-    noise_strength:     0.02, // granulação de tela velha (0 = desliga)
-    // Velocidade do boot animation (linha horizontal se expandindo)
-    boot_anim_ms:       1200,
+    scanline_opacity:   0.12,
+    vignette_strength:  0.55,
+    flicker:            true,
+    flicker_intensity:  0.055,
+    curvature:          true,
+    noise_strength:     0.018,
+    boot_anim_ms:       1100,
   },
 
-  // ── SONS (Web Audio API — sintéticos, sem arquivos) ──────────────────
   audio: {
-    crt_on_volume:    0.18,    // volume do ruído de ligar
-    crt_off_volume:   0.22,
-    key_volume:       0.10,    // volume do clique de tecla
-    whine_freq_start: 12000,   // Hz do chiado ao ligar
-    whine_freq_end:   15600,
+    // File-based audio — place these in the same folder as intro.html
+    crt_on_file:   'CRTon.mp3',
+    crt_off_file:  'CRToff.mp3',
+    key_file:      'keypress.mp3',
+    key_volume:    0.25,
+    crt_on_volume: 0.55,
+    crt_off_volume:0.55,
   },
 
-  // ── TERMINAL: prompt do sistema ──────────────────────────────────────
-  sys_prompt: 'C:\\SCIPNET>',   // o que aparece antes do comando digitado
+  sys_prompt: 'C:\\SCIPNET>',
 
-  // ── LINHAS DE BOOT ───────────────────────────────────────────────────
-  // Cada item: { text, color ('primary'|'dim'|'bright'|'accent'), delay_ms }
-  // delay_ms é RELATIVO à linha anterior (0 = imediato após a anterior)
   boot_lines: [
-    { text: 'SCiPNET BIOS v2.14 — SCP FOUNDATION SECURE NETWORK',         color: 'dim',    delay_ms: 0   },
-    { text: 'Copyright (C) 198█ SCP Foundation. As if we would need them.',     color: 'dim',    delay_ms: 80  },
-    { text: '',                                                              color: 'dim',    delay_ms: 60  },
-    { text: 'Memory check.......... 640K OK',                               color: 'dim',    delay_ms: 120 },
-    { text: 'Initializing secure protocols......... [OK]',                  color: 'dim',    delay_ms: 130 },
-    { text: 'Loading encryption layer......... [OK]',                       color: 'dim',    delay_ms: 130 },
-    { text: 'Connecting to SCiPNET backbone......... [OK]',                 color: 'dim',    delay_ms: 140 },
-    { text: '',                                                              color: 'dim',    delay_ms: 80  },
-    { text: 'CLEARANCE REQUIRED. UNAUTHORIZED ACCESS VIOLATES PERSONEL DIRECTIVE 12.B2.', color: 'accent', delay_ms: 200 },
-    { text: '',                                                              color: 'dim',    delay_ms: 80  },
+    { text: 'SCiPNET BIOS v2.14 — SCP FOUNDATION SECURE NETWORK',              color: 'dim',    delay_ms: 0   },
+    { text: 'Copyright (C) 198█ SCP Foundation.',                               color: 'dim',    delay_ms: 80  },
+    { text: '',                                                                   color: 'dim',    delay_ms: 60  },
+    { text: 'Memory check ........... 640K  [OK]',                              color: 'dim',    delay_ms: 130 },
+    { text: 'Initializing secure protocols ........... [OK]',                   color: 'dim',    delay_ms: 140 },
+    { text: 'Loading encryption layer ........... [OK]',                        color: 'dim',    delay_ms: 130 },
+    { text: 'Connecting to SCiPNET backbone ........... [OK]',                  color: 'dim',    delay_ms: 150 },
+    { text: '',                                                                   color: 'dim',    delay_ms: 70  },
+    { text: '⚠  CLEARANCE REQUIRED. UNAUTHORIZED ACCESS VIOLATES DIRECTIVE 12.B2.', color: 'accent', delay_ms: 200 },
+    { text: '',                                                                   color: 'dim',    delay_ms: 80  },
   ],
 
-  // ── ARTE ASCII ───────────────────────────────────────────────────────
   ascii_art: `
   ██████  ██████ ██ ██████  ███  ██ ███████ ████████
  ██      ██      ██ ██   ██ ████ ██ ██         ██
@@ -121,11 +349,9 @@ const CFG = {
       ██ ██      ██ ██      ██  ███ ██         ██
  ██████   ██████ ██ ██      ██   ██ ███████    ██`,
   ascii_color: 'bright',
-  ascii_font_size: '9px',   // ASCII art pode ser menor que o resto
-  ascii_after_ms: 400,      // pausa depois do ASCII antes do menu
+  ascii_font_size: '8.5px',
+  ascii_after_ms: 350,
 
-  // ── MENU ─────────────────────────────────────────────────────────────
-  // Cada item: { text, color, delay_ms (relativo ao anterior) }
   menu_lines: [
     { text: '╔══════════════════════════════════════════════════════╗', color: 'bright', delay_ms: 0  },
     { text: '║         S C i P N E T   M A I N   T E R M I N A L  ║', color: 'bright', delay_ms: 30 },
@@ -142,67 +368,96 @@ const CFG = {
     { text: '',                                                          color: 'dim',    delay_ms: 20 },
   ],
 
-  // ── COMANDO DIGITADO ─────────────────────────────────────────────────
   command: {
-    text:      'access Elowen Vesper Registry SC6',
-    pre_delay_ms:  6000,   // pausa antes de começar a digitar
-    speed_ms:   240,       // ms por caractere (menor = mais rápido)
-    speed_jitter: 0.7,    // variação aleatória (0 = robótico, 1 = humano)
-    post_delay_ms: 1200,   // pausa depois de terminar, antes do CRT desligar
+    // Each keypress advances one character
+    text: 'access Elowen Vesper Registry SC6',
+    speed_ms:     60,     // base ms per char (with jitter)
+    speed_jitter: 0.6,
+    post_delay_ms: 1000,  // pause after last char before CRT off
   },
 
-  // ── CRT OFF + PAUSA ──────────────────────────────────────────────────
   crt_off: {
-    anim_ms:       550,    // duração da animação de desligar
-    dark_pause_ms: 500,    // quanto fica totalmente preto antes do diálogo aparecer
+    anim_ms:       500,
+    dark_pause_ms: 480,
   },
 
-  // ── CAIXA DE DIÁLOGO ─────────────────────────────────────────────────
   dialog: {
-    title:            'SYSTEM MESSAGE',
-    title_font_size:  '10px',
-    title_font_family: '"Courier New", Courier, monospace',
-    body_font_size:   '15px',
-    body_font_family: '"Pinyon Script", cursive',
-    body_line_height: '1.85',
-    width:            '500px',
-    bottom_offset:    '12%',
+    title:             'SYSTEM MESSAGE',
+    title_font_size:   '9px',
+    title_font_family: '"Share Tech Mono", monospace',
+    body_font_size:    '17px',
+    body_font_family:  '"Pinyon Script", cursive',
+    body_line_height:  '2.0',
+    width:             '520px',
+    bottom_offset:     '13%',
 
-    // Cada linha é digitada letra por letra.
-    // Use *texto* para itálico.
-    // delay_ms = pausa ANTES desta linha começar a ser digitada (após a anterior terminar).
     lines: [
-      { text: '*Naughty naughty*.',                         delay_ms: 300  },
+      { text: '*Naughty naughty*.',                                delay_ms: 300  },
       { text: "You know I know you shouldn't be accessing this,",  delay_ms: 500  },
-      { text: "*don't you*?",                               delay_ms: 400  },
+      { text: "*don't you*?",                                      delay_ms: 400  },
     ],
 
-    type_speed_ms:  38,    // ms por caractere (menor = mais rápido)
-    type_jitter:    0.4,   // variação (0 = robótico, 1 = muito humano)
-    type_key_sound: true,  // toca clique de tecla ao digitar no popup
-
-    linger_ms: 2800,       // quanto fica visível após a última linha
-    fade_ms:   500,
+    type_speed_ms:  42,
+    type_jitter:    0.45,
+    type_key_sound: true,
+    linger_ms:      2600,
+    fade_ms:        480,
   },
 
-  // ── REDIRECT ─────────────────────────────────────────────────────────
   redirect: {
-    text:         'REDIRECIONANDO PARA AUTENTICAÇÃO SEGURA...',
-    bar_fill_ms:  2500,   // duração do preenchimento da barra
-    go_to:        'index.html',
-    fade_out_ms:  800,
+    text:        'REDIRECIONANDO PARA AUTENTICAÇÃO SEGURA...',
+    bar_fill_ms: 2400,
+    go_to:       'index.html',
+    fade_out_ms: 700,
   },
-
 };
-// ╔══════════════════════════════════════════════════════════════════════╗
-// ║              FIM DA CONFIGURAÇÃO — não edite abaixo                 ║
-// ╚══════════════════════════════════════════════════════════════════════╝
 
-
-// ── Resolve cor pelo nome do CFG.colors ─────────────────────────────────
+// ── Resolve cor ───────────────────────────────────────────────────────────
 function col(name) { return CFG.colors[name] || name; }
 
-// ── CANVAS EFEITOS CRT ──────────────────────────────────────────────────
+// ── Custom cursor ─────────────────────────────────────────────────────────
+const cursorEl = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursorEl.style.left = e.clientX + 'px';
+  cursorEl.style.top  = e.clientY + 'px';
+});
+
+// ── AUDIO (file-based) ────────────────────────────────────────────────────
+let keyAudioPool = [];
+const KEY_POOL_SIZE = 6;
+
+function preloadKeyAudio() {
+  for (let i = 0; i < KEY_POOL_SIZE; i++) {
+    const a = new Audio(CFG.audio.key_file);
+    a.volume = CFG.audio.key_volume;
+    a.load();
+    keyAudioPool.push(a);
+  }
+}
+
+let keyPoolIdx = 0;
+function playKey() {
+  const a = keyAudioPool[keyPoolIdx % KEY_POOL_SIZE];
+  keyPoolIdx++;
+  try {
+    a.currentTime = 0;
+    a.play().catch(() => {});
+  } catch(e) {}
+}
+
+function playCRTOn() {
+  const a = new Audio(CFG.audio.crt_on_file);
+  a.volume = CFG.audio.crt_on_volume;
+  a.play().catch(() => {});
+}
+
+function playCRTOff() {
+  const a = new Audio(CFG.audio.crt_off_file);
+  a.volume = CFG.audio.crt_off_volume;
+  a.play().catch(() => {});
+}
+
+// ── CANVAS CRT EFFECTS ────────────────────────────────────────────────────
 const fxCanvas = document.getElementById('fx');
 const fxCtx    = fxCanvas.getContext('2d');
 let W, H;
@@ -214,32 +469,23 @@ function resizeFX() {
 resizeFX();
 window.addEventListener('resize', resizeFX);
 
-// Estado CRT
-let crtPhase    = 'off';  // off | booton | on | bootoff
-let crtProgress = 0;      // 0–1 para animações de boot
-let crtBootDir  = 1;
+let crtPhase    = 'off';
+let crtProgress = 0;
 let crtBootStart= 0;
-const crtBootMs = CFG.crt.boot_anim_ms;
 let flickerVal  = 1;
-
-// Noise buffer (regenerado a cada frame)
 let noiseFrame  = 0;
 
 function drawCRT(ts) {
   fxCtx.clearRect(0, 0, W, H);
-
-  // ── Fundo
   fxCtx.fillStyle = col('bg');
   fxCtx.fillRect(0, 0, W, H);
 
-  // ── Boot on: linha central se expandindo verticalmente
   if (crtPhase === 'booton') {
     const elapsed = ts - crtBootStart;
-    crtProgress   = Math.min(elapsed / crtBootMs, 1);
+    crtProgress   = Math.min(elapsed / CFG.crt.boot_anim_ms, 1);
     const eased   = easeOutCubic(crtProgress);
     const clipH   = Math.round(H * eased);
     const clipY   = Math.round((H - clipH) / 2);
-    // Revelar conteúdo do terminal usando clip
     document.getElementById('terminal').style.clipPath =
       `inset(${clipY}px 0px ${H - clipY - clipH}px 0px)`;
     if (crtProgress >= 1) {
@@ -248,7 +494,6 @@ function drawCRT(ts) {
     }
   }
 
-  // ── Boot off: linha central encolhendo
   if (crtPhase === 'bootoff') {
     const elapsed = ts - crtBootStart;
     crtProgress   = Math.min(elapsed / CFG.crt_off.anim_ms, 1);
@@ -260,63 +505,43 @@ function drawCRT(ts) {
     if (crtProgress >= 1) {
       crtPhase = 'off';
       document.getElementById('terminal').style.clipPath = 'none';
-      document.getElementById('terminal').style.opacity  = String(CFG.crt_off.dim_brightness);
+      document.getElementById('terminal').style.opacity  = '0';
       onCRTOffDone();
     }
   }
 
-  // ── Flicker
   if (CFG.crt.flicker && crtPhase === 'on') {
     flickerVal = 1 - Math.random() * CFG.crt.flicker_intensity;
   } else {
     flickerVal = 1;
   }
 
-  // ── Scanlines
-  if (CFG.crt.scanline_opacity > 0) {
-    for (let y = 0; y < H; y += 4) {
-      fxCtx.fillStyle = `rgba(0,0,0,${CFG.crt.scanline_opacity})`;
-      fxCtx.fillRect(0, y + 2, W, 2);
-    }
-  }
-
-  // ── Noise
   if (CFG.crt.noise_strength > 0 && crtPhase !== 'off') {
     noiseFrame++;
-    if (noiseFrame % 2 === 0) { // every 2 frames for perf
+    if (noiseFrame % 2 === 0) {
       const imgd = fxCtx.createImageData(W, H);
       const d    = imgd.data;
       const str  = CFG.crt.noise_strength * 255;
       for (let i = 0; i < d.length; i += 4) {
         const v = (Math.random() * str) | 0;
-        d[i]=d[i+1]=d[i+2]=v; d[i+3]=40;
+        d[i]=d[i+1]=d[i+2]=v; d[i+3]=35;
       }
       fxCtx.putImageData(imgd, 0, 0);
     }
   }
 
-  // ── Vignette
-  if (CFG.crt.vignette_strength > 0) {
-    const grad = fxCtx.createRadialGradient(W/2,H/2,H*0.3, W/2,H/2,H*0.8);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(1, `rgba(0,0,0,${CFG.crt.vignette_strength})`);
-    fxCtx.fillStyle = grad;
-    fxCtx.fillRect(0, 0, W, H);
-  }
-
-  // ── Curvature overlay (barrel distortion illusion via gradient)
   if (CFG.crt.curvature) {
     const cx = fxCtx.createRadialGradient(W/2,H/2,0, W/2,H/2,Math.max(W,H)*0.6);
     cx.addColorStop(0,   'rgba(0,0,0,0)');
     cx.addColorStop(0.7, 'rgba(0,0,0,0)');
-    cx.addColorStop(1,   'rgba(0,0,0,0.35)');
+    cx.addColorStop(1,   'rgba(0,0,0,0.38)');
     fxCtx.fillStyle = cx;
     fxCtx.fillRect(0, 0, W, H);
   }
 
-  // Apply flicker to terminal
-  if (document.getElementById('terminal').style.display !== 'none') {
-    document.getElementById('terminal').style.opacity =
+  const term = document.getElementById('terminal');
+  if (term.style.display !== 'none') {
+    term.style.opacity =
       (crtPhase === 'on' ? flickerVal : crtProgress > 0 ? flickerVal * crtProgress : 0).toFixed(3);
   }
 
@@ -324,87 +549,11 @@ function drawCRT(ts) {
 }
 requestAnimationFrame(drawCRT);
 
-function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeOutCubic(t) { return 1 - Math.pow(1-t, 3); }
 function easeInCubic(t)  { return t * t * t; }
 
-// ── Web Audio ───────────────────────────────────────────────────────────
-let audioCtx = null;
-function getAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function playCRTOn() {
-  const ctx = getAudio();
-  const bufLen = Math.floor(ctx.sampleRate * 0.3);
-  const buf  = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i=0;i<bufLen;i++) data[i]=(Math.random()*2-1)*(1-i/bufLen);
-  const src=ctx.createBufferSource(), gain=ctx.createGain();
-  src.buffer=buf;
-  gain.gain.setValueAtTime(CFG.audio.crt_on_volume, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
-  src.connect(gain); gain.connect(ctx.destination); src.start();
-
-  const osc=ctx.createOscillator(), og=ctx.createGain();
-  osc.type='sawtooth';
-  osc.frequency.setValueAtTime(CFG.audio.whine_freq_start, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(CFG.audio.whine_freq_end, ctx.currentTime+0.6);
-  og.gain.setValueAtTime(0.04, ctx.currentTime);
-  og.gain.exponentialRampToValueAtTime(0.006, ctx.currentTime+0.6);
-  osc.connect(og); og.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+0.6);
-
-  const hum=ctx.createOscillator(), hg=ctx.createGain();
-  hum.type='sine'; hum.frequency.value=60;
-  hg.gain.setValueAtTime(0,ctx.currentTime);
-  hg.gain.linearRampToValueAtTime(0.04, ctx.currentTime+0.5);
-  hum.connect(hg); hg.connect(ctx.destination); hum.start(); hum.stop(ctx.currentTime+1.2);
-}
-
-function playCRTOff() {
-  const ctx = getAudio();
-  const osc=ctx.createOscillator(), og=ctx.createGain();
-  osc.type='sawtooth';
-  osc.frequency.setValueAtTime(CFG.audio.whine_freq_end, ctx.currentTime);
-  osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime+0.45);
-  og.gain.setValueAtTime(CFG.audio.crt_off_volume*0.3, ctx.currentTime);
-  og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.45);
-  osc.connect(og); og.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+0.5);
-
-  const osc2=ctx.createOscillator(), og2=ctx.createGain();
-  osc2.type='sine'; osc2.frequency.value=70;
-  og2.gain.setValueAtTime(CFG.audio.crt_off_volume, ctx.currentTime);
-  og2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.18);
-  osc2.connect(og2); og2.connect(ctx.destination); osc2.start(); osc2.stop(ctx.currentTime+0.2);
-}
-
-function playKey() {
-  const ctx = getAudio();
-  const bufLen = Math.floor(ctx.sampleRate * 0.04);
-  const buf  = ctx.createBuffer(1, bufLen, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i=0;i<bufLen;i++) data[i]=(Math.random()*2-1)*Math.exp(-i/(bufLen*0.22));
-  const src=ctx.createBufferSource(), g=ctx.createGain();
-  src.buffer=buf; g.gain.value=CFG.audio.key_volume;
-  src.connect(g); g.connect(ctx.destination); src.start();
-}
-
-// ── PROMPT INICIAL ──────────────────────────────────────────────────────
+// ── PROMPT ────────────────────────────────────────────────────────────────
 const promptEl = document.getElementById('prompt-label');
-promptEl.style.cssText = `
-  color: ${col('prompt_text')};
-  font-family: ${CFG.font.family};
-  font-size: ${CFG.prompt.font_size};
-  letter-spacing: ${CFG.prompt.letter_spacing};
-  animation: float-prompt ${CFG.prompt.float_duration} ease-in-out infinite;
-`;
-document.head.insertAdjacentHTML('beforeend', `<style>
-  @keyframes float-prompt {
-    0%,100% { transform: translateY(0); opacity:0.5; }
-    50%      { transform: translateY(-${CFG.prompt.float_amplitude}); opacity:1; }
-  }
-</style>`);
-
 let promptIdx = 0;
 promptEl.textContent = CFG.prompt.texts[0];
 setInterval(() => {
@@ -412,53 +561,35 @@ setInterval(() => {
   promptEl.textContent = CFG.prompt.texts[promptIdx];
 }, CFG.prompt.toggle_ms);
 
-// ── TERMINAL SETUP ──────────────────────────────────────────────────────
+// ── TERMINAL SETUP ────────────────────────────────────────────────────────
 const termEl = document.getElementById('terminal');
-termEl.style.cssText = `
-  position:absolute; inset:0;
-  padding: clamp(16px,3vw,36px) clamp(18px,4vw,52px);
-  font-family: ${CFG.font.family};
-  font-size: ${CFG.font.size};
-  line-height: ${CFG.font.line_height};
-  color: ${col('primary')};
-  text-shadow: 0 0 6px ${col('primary')};
-  overflow:hidden;
-  opacity:0;
-`;
-
-function makeLineEl(text, colorName) {
-  const d = document.createElement(text === '' ? 'br' : 'div');
-  if (text !== '') {
-    d.textContent = text;
-    d.style.color = col(colorName || 'primary');
-    d.style.textShadow = `0 0 6px ${col(colorName || 'primary')}40`;
-  }
-  return d;
-}
 
 function addLine(text, colorName) {
-  termEl.appendChild(makeLineEl(text, colorName));
+  if (text === '') { termEl.appendChild(document.createElement('br')); return; }
+  const d = document.createElement('div');
+  d.textContent = text;
+  d.style.color = col(colorName || 'primary');
+  d.style.textShadow = `0 0 7px ${col(colorName || 'primary')}55`;
+  termEl.appendChild(d);
   termEl.scrollTop = termEl.scrollHeight;
 }
 
-// ── FIRST INTERACTION ───────────────────────────────────────────────────
+// ── START ─────────────────────────────────────────────────────────────────
 let started = false;
 function onStart() {
   if (started) return; started = true;
+  preloadKeyAudio();
 
-  // Hide prompt
   const cp = document.getElementById('click-prompt');
-  cp.style.transition = 'opacity 0.5s';
+  cp.style.transition = 'opacity 0.6s';
   cp.style.opacity    = '0';
-  setTimeout(() => cp.style.display = 'none', 500);
+  setTimeout(() => cp.style.display = 'none', 600);
 
-  // Fullscreen
   try {
     const el = document.documentElement;
     (el.requestFullscreen || el.webkitRequestFullscreen || (()=>{})).call(el);
   } catch(e){}
 
-  // Show terminal (invisible) then boot
   termEl.style.display = 'block';
   termEl.style.opacity = '0';
 
@@ -466,14 +597,13 @@ function onStart() {
     playCRTOn();
     crtPhase     = 'booton';
     crtBootStart = performance.now();
-    requestAnimationFrame(ts => { crtBootStart = ts; });
-    setTimeout(runBoot, 100);
-  }, 200);
+    setTimeout(runBoot, 80);
+  }, 180);
 }
 document.addEventListener('click',   onStart, { once: true });
 document.addEventListener('keydown', onStart, { once: true });
 
-// ── BOOT SEQUENCE ───────────────────────────────────────────────────────
+// ── BOOT ──────────────────────────────────────────────────────────────────
 function runBoot() {
   let acc = 0;
   CFG.boot_lines.forEach(({ text, color, delay_ms }) => {
@@ -481,18 +611,18 @@ function runBoot() {
     setTimeout(() => addLine(text, color), acc);
   });
 
-  // ASCII art
-  acc += 200;
+  acc += 180;
   setTimeout(() => {
     const pre = document.createElement('pre');
     pre.textContent = CFG.ascii_art;
     pre.style.cssText = `
       font-size: ${CFG.ascii_font_size};
-      line-height: 1.15;
+      line-height: 1.2;
       color: ${col(CFG.ascii_color)};
-      text-shadow: 0 0 10px ${col(CFG.ascii_color)}66;
+      text-shadow: 0 0 12px ${col(CFG.ascii_color)}66;
       white-space: pre;
-      margin: 6px 0 10px;
+      margin: 8px 0 10px;
+      letter-spacing: 0.02em;
     `;
     termEl.appendChild(pre);
     termEl.scrollTop = termEl.scrollHeight;
@@ -502,24 +632,21 @@ function runBoot() {
   setTimeout(runMenu, acc);
 }
 
-// ── MENU ────────────────────────────────────────────────────────────────
+// ── MENU ──────────────────────────────────────────────────────────────────
 function runMenu() {
   let acc = 0;
   CFG.menu_lines.forEach(({ text, color, delay_ms }) => {
     acc += delay_ms;
     setTimeout(() => addLine(text, color), acc);
   });
-
-  acc += 200;
+  acc += 180;
   setTimeout(runCommandPhase, acc);
 }
 
-// ── COMMAND TYPING ──────────────────────────────────────────────────────
+// ── COMMAND PHASE (keypress-driven) ───────────────────────────────────────
 function runCommandPhase() {
-  // Prompt line
   const line = document.createElement('div');
-  line.style.display = 'flex';
-  line.style.gap     = '4px';
+  line.style.cssText = 'display:flex; gap:4px; align-items:baseline;';
 
   const promptSpan = document.createElement('span');
   promptSpan.textContent = CFG.sys_prompt + ' ';
@@ -527,15 +654,20 @@ function runCommandPhase() {
 
   const typedSpan = document.createElement('span');
   typedSpan.style.color = col('primary');
+  typedSpan.style.textShadow = `0 0 8px ${col('primary')}88`;
 
   const cursorSpan = document.createElement('span');
   cursorSpan.style.cssText = `
-    display:inline-block; width:0.55em; height:1em;
-    background:${col('primary')}; vertical-align:text-bottom;
-    animation: blink-cur 0.8s step-end infinite;
-    box-shadow: 0 0 6px ${col('primary')};
+    display:inline-block;
+    width:0.55em; height:0.9em;
+    background:${col('primary')};
+    vertical-align:text-bottom;
+    margin-left:1px;
+    animation: blink-cur 0.75s step-end infinite;
+    box-shadow: 0 0 7px ${col('primary')};
   `;
-  document.head.insertAdjacentHTML('beforeend', `<style>@keyframes blink-cur{0%,100%{opacity:1}50%{opacity:0}}</style>`);
+  document.head.insertAdjacentHTML('beforeend',
+    `<style>@keyframes blink-cur{0%,100%{opacity:1}50%{opacity:0}}</style>`);
 
   line.appendChild(promptSpan);
   line.appendChild(typedSpan);
@@ -543,28 +675,55 @@ function runCommandPhase() {
   termEl.appendChild(line);
   termEl.scrollTop = termEl.scrollHeight;
 
-  setTimeout(() => {
-    const cmd = CFG.command.text;
-    let i = 0;
-    function typeNext() {
-      if (i <= cmd.length) {
-        typedSpan.textContent = cmd.slice(0, i);
-        i++;
-        if (i <= cmd.length) {
-          playKey();
-          const jitter = 1 + (Math.random() - 0.5) * CFG.command.speed_jitter;
-          setTimeout(typeNext, CFG.command.speed_ms * jitter);
-        } else {
-          cursorSpan.remove();
-          setTimeout(runCRTOff, CFG.command.post_delay_ms);
-        }
-      }
+  // Show keypress hint
+  document.getElementById('key-hint').style.display = 'block';
+
+  const cmd = CFG.command.text;
+  let charIdx = 0;
+  let commandDone = false;
+
+  function handleKeypress(e) {
+    if (commandDone) return;
+    // Ignore modifier-only keys
+    if (['Shift','Control','Alt','Meta','CapsLock','Tab'].includes(e.key)) return;
+
+    playKey();
+    charIdx++;
+    typedSpan.textContent = cmd.slice(0, charIdx);
+    termEl.scrollTop = termEl.scrollHeight;
+
+    if (charIdx >= cmd.length) {
+      commandDone = true;
+      document.removeEventListener('keydown', handleKeypress);
+      cursorSpan.remove();
+      document.getElementById('key-hint').style.display = 'none';
+      setTimeout(runCRTOff, CFG.command.post_delay_ms);
     }
-    typeNext();
-  }, CFG.command.pre_delay_ms);
+  }
+
+  document.addEventListener('keydown', handleKeypress);
+
+  // Also allow mouse click to advance characters
+  function handleClick() {
+    if (commandDone) return;
+    playKey();
+    charIdx++;
+    typedSpan.textContent = cmd.slice(0, charIdx);
+    termEl.scrollTop = termEl.scrollHeight;
+
+    if (charIdx >= cmd.length) {
+      commandDone = true;
+      document.removeEventListener('keydown', handleKeypress);
+      document.removeEventListener('click', handleClick);
+      cursorSpan.remove();
+      document.getElementById('key-hint').style.display = 'none';
+      setTimeout(runCRTOff, CFG.command.post_delay_ms);
+    }
+  }
+  document.addEventListener('click', handleClick);
 }
 
-// ── CRT OFF ─────────────────────────────────────────────────────────────
+// ── CRT OFF ───────────────────────────────────────────────────────────────
 function runCRTOff() {
   playCRTOff();
   crtPhase     = 'bootoff';
@@ -572,13 +731,11 @@ function runCRTOff() {
 }
 
 function onCRTOffDone() {
-  // Tela completamente preta — esconde tudo
   termEl.style.display = 'none';
-  // O canvas já está desenhando fundo preto puro neste ponto
   setTimeout(showDialog, CFG.crt_off.dark_pause_ms);
 }
 
-// ── DIALOG ──────────────────────────────────────────────────────────────
+// ── DIALOG ────────────────────────────────────────────────────────────────
 function showDialog() {
   const D   = CFG.dialog;
   const box = document.getElementById('dialog');
@@ -588,13 +745,17 @@ function showDialog() {
     position: absolute;
     left: 50%;
     bottom: ${D.bottom_offset};
-    transform: translateX(-50%) translateY(14px);
+    transform: translateX(-50%) translateY(16px);
     width: min(${D.width}, 90vw);
     background: ${col('dialog_bg')};
     border: 1px solid ${col('dialog_border')};
-    box-shadow: 0 0 30px ${col('dialog_border')}55, 0 0 60px ${col('dialog_border')}22;
+    box-shadow:
+      0 0 0 1px #1a000055,
+      0 0 30px ${col('dialog_border')}44,
+      0 0 80px ${col('dialog_border')}18,
+      inset 0 0 30px rgba(0,0,0,0.8);
     opacity: 0;
-    transition: opacity 0.45s ease, transform 0.45s ease;
+    transition: opacity 0.5s ease, transform 0.5s ease;
     z-index: 500;
   `;
 
@@ -606,41 +767,55 @@ function showDialog() {
     color: ${col('dialog_header_text')};
     font-family: ${D.title_font_family};
     font-size: ${D.title_font_size};
-    letter-spacing: 0.3em;
-    padding: 5px 14px;
+    letter-spacing: 0.45em;
+    padding: 6px 16px;
     font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+  // Blinking dot in header
+  const dot = document.createElement('span');
+  dot.style.cssText = `
+    width:5px;height:5px;border-radius:50%;
+    background:#000;
+    display:inline-block;
+    animation: blink-cur 1s step-end infinite;
+  `;
+  hdr.prepend(dot);
+
+  // Decorative top border line
+  const topLine = document.createElement('div');
+  topLine.style.cssText = `
+    height: 1px;
+    background: linear-gradient(to right, transparent, ${col('dialog_border')}88, transparent);
   `;
 
   // Body
   const body = document.createElement('div');
   body.style.cssText = `
-    padding: 18px 20px 20px;
+    padding: 22px 26px 24px;
     color: ${col('primary')};
     font-family: ${D.body_font_family};
     font-size: ${D.body_font_size};
     line-height: ${D.body_line_height};
-    text-shadow: 0 0 8px ${col('primary')}55;
-    min-height: 60px;
+    text-shadow: 0 0 10px ${col('primary')}44;
+    min-height: 70px;
     white-space: pre-wrap;
   `;
 
   box.appendChild(hdr);
+  box.appendChild(topLine);
   box.appendChild(body);
 
-  // Animate box in
   void box.offsetWidth;
   box.style.opacity   = '1';
   box.style.transform = 'translateX(-50%) translateY(0)';
 
-  // ── Typewriter: digits all lines one after another ───────────────────
-  // We build a flat list of "segments" — each segment is plain or italic text.
-  // The cursor blinks at the end of whatever has been typed so far.
-
-  // Parse *italic* markup into segments: [{text, italic}]
   function parseSegments(raw) {
     const segs = [];
     const re   = /\*(.*?)\*/g;
-    let last   = 0, m;
+    let last=0, m;
     while ((m = re.exec(raw)) !== null) {
       if (m.index > last) segs.push({ text: raw.slice(last, m.index), italic: false });
       segs.push({ text: m[1], italic: true });
@@ -650,101 +825,76 @@ function showDialog() {
     return segs;
   }
 
-  // Build DOM structure for all lines upfront (invisible), then type into them
   const lineNodes = D.lines.map(() => {
     const span = document.createElement('span');
     body.appendChild(span);
     return span;
   });
 
-  // Cursor element (moves to end of typed content)
   const cur = document.createElement('span');
   cur.style.cssText = `
-    display: inline-block;
-    width: 0.6em; height: 0.9em;
-    background: ${col('primary')};
-    vertical-align: text-bottom;
-    margin-left: 1px;
-    box-shadow: 0 0 6px ${col('primary')};
-    animation: blink-cur 0.75s step-end infinite;
+    display:inline-block;
+    width:0.5em; height:0.85em;
+    background:${col('primary')};
+    vertical-align:text-bottom;
+    margin-left:2px;
+    box-shadow:0 0 6px ${col('primary')};
+    animation:blink-cur 0.75s step-end infinite;
   `;
 
-  // Type a single line's full text (with markup) into its node, call done() when finished
   function typeLine(lineIdx, done) {
     const raw  = D.lines[lineIdx].text;
     const segs = parseSegments(raw);
     const node = lineNodes[lineIdx];
 
-    // Add a space separator before this line (except first)
-    if (lineIdx > 0) {
-      const space = document.createTextNode(' ');
-      node.appendChild(space);
-    }
-
-    // Move cursor to end of this node
+    if (lineIdx > 0) node.appendChild(document.createTextNode(' '));
     node.appendChild(cur);
 
-    // Flatten all characters with their italic flag
     const chars = [];
     segs.forEach(({ text, italic }) => {
       for (const ch of text) chars.push({ ch, italic });
     });
 
-    let charIdx = 0;
-    // Current span being written into
-    let curSpan = null;
-    let curItalic = null;
+    let charIdx=0, curSpan=null, curItalic=null;
 
     function typeChar() {
-      if (charIdx >= chars.length) {
-        done();
-        return;
-      }
+      if (charIdx >= chars.length) { done(); return; }
       const { ch, italic } = chars[charIdx++];
-
-      // Create new span if style changes
       if (curSpan === null || italic !== curItalic) {
         curSpan = document.createElement('span');
         if (italic) {
           curSpan.style.fontStyle = 'italic';
           curSpan.style.color     = col('bright');
+          curSpan.style.textShadow= `0 0 12px ${col('bright')}88`;
         }
         node.insertBefore(curSpan, cur);
         curItalic = italic;
       }
       curSpan.textContent += ch;
-
       if (D.type_key_sound) playKey();
-
-      const jitter = 1 + (Math.random() - 0.5) * D.type_jitter;
+      const jitter = 1 + (Math.random()-0.5)*D.type_jitter;
       setTimeout(typeChar, D.type_speed_ms * jitter);
     }
-
     typeChar();
   }
 
-  // Chain all lines: wait delay_ms after previous line finishes, then type
   function chainLines(idx) {
     if (idx >= D.lines.length) {
-      // All lines done — linger then fade out
       setTimeout(() => {
         box.style.transition = `opacity ${D.fade_ms}ms ease, transform ${D.fade_ms}ms ease`;
         box.style.opacity    = '0';
-        box.style.transform  = 'translateX(-50%) translateY(14px)';
+        box.style.transform  = 'translateX(-50%) translateY(16px)';
         setTimeout(showRedirect, D.fade_ms);
       }, D.linger_ms);
       return;
     }
-
-    setTimeout(() => {
-      typeLine(idx, () => chainLines(idx + 1));
-    }, D.lines[idx].delay_ms);
+    setTimeout(() => typeLine(idx, () => chainLines(idx+1)), D.lines[idx].delay_ms);
   }
 
   chainLines(0);
 }
 
-// ── REDIRECT ────────────────────────────────────────────────────────────
+// ── REDIRECT ──────────────────────────────────────────────────────────────
 function showRedirect() {
   const rdiv = document.getElementById('redir');
   rdiv.style.cssText = `
@@ -752,30 +902,60 @@ function showRedirect() {
     position:absolute;inset:0;
     flex-direction:column;
     align-items:center;justify-content:center;
-    gap:16px;
+    gap:20px;
     font-family:${CFG.font.family};
-    font-size:11px;
-    letter-spacing:0.25em;
+    font-size:10px;
+    letter-spacing:0.35em;
     color:${col('redir_text')};
-    text-shadow:0 0 8px ${col('redir_text')}66;
+    text-shadow:0 0 10px ${col('redir_text')}88;
     z-index:600;
   `;
 
   const txt = document.createElement('div');
   txt.textContent = CFG.redirect.text;
+  txt.style.cssText = `
+    opacity:0;
+    animation: fade-in-txt 0.8s ease forwards;
+  `;
+  document.head.insertAdjacentHTML('beforeend',
+    `<style>@keyframes fade-in-txt{to{opacity:1}}</style>`);
 
   const barWrap = document.createElement('div');
-  barWrap.style.cssText = `width:220px;height:5px;border:1px solid ${col('dim')};position:relative;overflow:hidden;`;
+  barWrap.style.cssText = `
+    width:240px; height:4px;
+    border:1px solid ${col('dim')};
+    position:relative; overflow:hidden;
+    box-shadow: 0 0 8px ${col('dim')}44;
+  `;
 
   const bar = document.createElement('div');
-  bar.style.cssText = `height:100%;width:0%;background:${col('redir_bar')};box-shadow:0 0 8px ${col('redir_bar')};transition:width ${CFG.redirect.bar_fill_ms}ms linear;`;
+  bar.style.cssText = `
+    height:100%; width:0%;
+    background:${col('redir_bar')};
+    box-shadow:0 0 10px ${col('redir_bar')};
+    transition:width ${CFG.redirect.bar_fill_ms}ms linear;
+  `;
+
+  // Percentage counter
+  const pct = document.createElement('div');
+  pct.style.cssText = `font-size:9px;letter-spacing:0.2em;color:${col('dim')};margin-top:4px;`;
+  pct.textContent = '0%';
 
   barWrap.appendChild(bar);
   rdiv.appendChild(txt);
   rdiv.appendChild(barWrap);
+  rdiv.appendChild(pct);
 
   void bar.offsetWidth;
   setTimeout(() => bar.style.width = '100%', 30);
+
+  // Animate counter
+  let pctVal = 0;
+  const pctInterval = setInterval(() => {
+    pctVal = Math.min(pctVal + 1, 100);
+    pct.textContent = pctVal + '%';
+    if (pctVal >= 100) clearInterval(pctInterval);
+  }, CFG.redirect.bar_fill_ms / 100);
 
   setTimeout(() => {
     document.body.style.transition = `opacity ${CFG.redirect.fade_out_ms}ms ease`;

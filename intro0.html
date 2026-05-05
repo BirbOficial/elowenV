@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCiPNET TERMINAL</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#000; cursor:none; }
+</style>
+</head>
+<body>
+<canvas id="fx"></canvas>
+
+<div id="root" style="
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;z-index:10;
+">
+  <!-- click prompt -->
+  <div id="click-prompt" style="pointer-events:all;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+    <span id="prompt-label"></span>
+  </div>
+
+  <!-- terminal -->
+  <div id="terminal" style="display:none;position:absolute;inset:0;padding:0;overflow:hidden;"></div>
+
+  <!-- dialog -->
+  <div id="dialog" style="display:none;position:absolute;"></div>
+
+  <!-- redirect bar -->
+  <div id="redir" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:16px;"></div>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║                  ★  CONFIGURAÇÃO DA CUTSCENE  ★                    ║
+// ║  Edite apenas este bloco. Nada mais precisa ser tocado.             ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+const CFG = {
+
+  // ── PALETA ──────────────────────────────────────────────────────────
+  colors: {
+    bg:         '#000000',   // fundo da tela
+    primary:    '#e80400',   // verde fósforo principal
+    dim:        '#8c0000',   // verde escuro (linhas de boot secundárias)
+    bright:     '#ff0000',   // verde brilhante (títulos, bordas)
+    accent:     '#e82e00',   // âmbar (avisos)
+    dialog_bg:  '#1f0209',   // fundo da caixa de diálogo
+    dialog_border: '#e80400',
+    dialog_header_bg: '#e80400',
+    dialog_header_text: '#000000',
+    redir_text: '#e804003',
+    redir_bar:  '#e80400',
+    prompt_text:'#1a4d1a',   // texto "clique em qualquer lugar"
+  },
+
+  // ── TIPOGRAFIA ───────────────────────────────────────────────────────
+  font: {
+    family: '"Courier New", Courier, monospace',
+    size:   '14px',           // tamanho base do terminal
+    line_height: '1.6',
+  },
+
+  // ── PROMPT INICIAL ───────────────────────────────────────────────────
+  prompt: {
+    texts: ['clique em qualquer lugar', 'aperte qualquer tecla'],
+    toggle_ms: 3000,          // intervalo de alternância entre os textos
+    float_amplitude: '7px',   // altura da animação flutuante
+    float_duration: '3s',
+    font_size: '13px',
+    letter_spacing: '0.3em',
+  },
+
+  // ── CRT EFEITOS ──────────────────────────────────────────────────────
+  crt: {
+    scanline_opacity:   0.14,  // 0 = sem scanlines, 1 = muito pesado
+    vignette_strength:  0.55,  // escuridão nas bordas (0–1)
+    flicker:            true,  // piscar leve de fósforo
+    flicker_intensity:  0.07,  // quanto varia (0.01 = sutil, 0.1 = agitado)
+    curvature:          true,  // leve distorção de barril
+    noise_strength:     0.02, // granulação de tela velha (0 = desliga)
+    // Velocidade do boot animation (linha horizontal se expandindo)
+    boot_anim_ms:       1200,
+  },
+
+  // ── SONS (Web Audio API — sintéticos, sem arquivos) ──────────────────
+  audio: {
+    crt_on_volume:    0.18,    // volume do ruído de ligar
+    crt_off_volume:   0.22,
+    key_volume:       0.10,    // volume do clique de tecla
+    whine_freq_start: 12000,   // Hz do chiado ao ligar
+    whine_freq_end:   15600,
+  },
+
+  // ── TERMINAL: prompt do sistema ──────────────────────────────────────
+  sys_prompt: 'C:\\SCIPNET>',   // o que aparece antes do comando digitado
+
+  // ── LINHAS DE BOOT ───────────────────────────────────────────────────
+  // Cada item: { text, color ('primary'|'dim'|'bright'|'accent'), delay_ms }
+  // delay_ms é RELATIVO à linha anterior (0 = imediato após a anterior)
+  boot_lines: [
+    { text: 'SCiPNET BIOS v2.14 — SCP FOUNDATION SECURE NETWORK',         color: 'dim',    delay_ms: 0   },
+    { text: 'Copyright (C) 198█ SCP Foundation. As if we would need them.',     color: 'dim',    delay_ms: 80  },
+    { text: '',                                                              color: 'dim',    delay_ms: 60  },
+    { text: 'Memory check.......... 640K OK',                               color: 'dim',    delay_ms: 120 },
+    { text: 'Initializing secure protocols......... [OK]',                  color: 'dim',    delay_ms: 130 },
+    { text: 'Loading encryption layer......... [OK]',                       color: 'dim',    delay_ms: 130 },
+    { text: 'Connecting to SCiPNET backbone......... [OK]',                 color: 'dim',    delay_ms: 140 },
+    { text: '',                                                              color: 'dim',    delay_ms: 80  },
+    { text: 'CLEARANCE REQUIRED. UNAUTHORIZED ACCESS VIOLATES PERSONEL DIRECTIVE 12.B2.', color: 'accent', delay_ms: 200 },
+    { text: '',                                                              color: 'dim',    delay_ms: 80  },
+  ],
+
+  // ── ARTE ASCII ───────────────────────────────────────────────────────
+  ascii_art: `
+  ██████  ██████ ██ ██████  ███  ██ ███████ ████████
+ ██      ██      ██ ██   ██ ████ ██ ██         ██
+  █████  ██      ██ ██████  ██ ████ █████      ██
+      ██ ██      ██ ██      ██  ███ ██         ██
+ ██████   ██████ ██ ██      ██   ██ ███████    ██`,
+  ascii_color: 'bright',
+  ascii_font_size: '9px',   // ASCII art pode ser menor que o resto
+  ascii_after_ms: 400,      // pausa depois do ASCII antes do menu
+
+  // ── MENU ─────────────────────────────────────────────────────────────
+  // Cada item: { text, color, delay_ms (relativo ao anterior) }
+  menu_lines: [
+    { text: '╔══════════════════════════════════════════════════════╗', color: 'bright', delay_ms: 0  },
+    { text: '║         S C i P N E T   M A I N   T E R M I N A L  ║', color: 'bright', delay_ms: 30 },
+    { text: '╚══════════════════════════════════════════════════════╝', color: 'bright', delay_ms: 30 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+    { text: '  [1]  Personnel Directory',                               color: 'primary',delay_ms: 50 },
+    { text: '  [2]  SCP Object Database',                               color: 'primary',delay_ms: 50 },
+    { text: '  [3]  Incident Reports',                                  color: 'primary',delay_ms: 50 },
+    { text: '  [4]  Secure Communications',                             color: 'primary',delay_ms: 50 },
+    { text: '  [5]  Research Archives',                                 color: 'primary',delay_ms: 50 },
+    { text: '  [6]  Containment Protocols',                             color: 'primary',delay_ms: 50 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+    { text: '  Type a command or select an option.',                    color: 'dim',    delay_ms: 40 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+  ],
+
+  // ── COMANDO DIGITADO ─────────────────────────────────────────────────
+  command: {
+    text:      'access Elowen Vesper Registry SC6',
+    pre_delay_ms:  6000,   // pausa antes de começar a digitar
+    speed_ms:   240,       // ms por caractere (menor = mais rápido)
+    speed_jitter: 0.7,    // variação aleatória (0 = robótico, 1 = humano)
+    post_delay_ms: 1200,   // pausa depois de terminar, antes do CRT desligar
+  },
+
+  // ── CRT OFF + PAUSA ──────────────────────────────────────────────────
+  crt_off: {
+    anim_ms:       550,    // duração da animação de desligar
+    dark_pause_ms: 500,    // quanto fica totalmente preto antes do diálogo aparecer
+  },
+
+  // ── CAIXA DE DIÁLOGO ─────────────────────────────────────────────────
+  dialog: {
+    title:            'SYSTEM MESSAGE',
+    title_font_size:  '10px',
+    title_font_family: '"Courier New", Courier, monospace',
+    body_font_size:   '15px',
+    body_font_family: '"Pinyon Script", cursive',
+    body_line_height: '1.85',
+    width:            '500px',
+    bottom_offset:    '12%',
+
+    // Cada linha é digitada letra por letra.
+    // Use *texto* para itálico.
+    // delay_ms = pausa ANTES desta linha começar a ser digitada (após a anterior terminar).
+    lines: [
+      { text: '*Naughty naughty*.',                         delay_ms: 300  },
+      { text: "You know I know you shouldn't be accessing this,",  delay_ms: 500  },
+      { text: "*don't you*?",                               delay_ms: 400  },
+    ],
+
+    type_speed_ms:  38,    // ms por caractere (menor = mais rápido)
+    type_jitter:    0.4,   // variação (0 = robótico, 1 = muito humano)
+    type_key_sound: true,  // toca clique de tecla ao digitar no popup
+
+    linger_ms: 2800,       // quanto fica visível após a última linha
+    fade_ms:   500,
+  },
+
+  // ── REDIRECT ─────────────────────────────────────────────────────────
+  redirect: {
+    text:         'REDIRECIONANDO PARA AUTENTICAÇÃO SEGURA...',
+    bar_fill_ms:  2500,   // duração do preenchimento da barra
+    go_to:        'index.html',
+    fade_out_ms:  800,
+  },
+
+};
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║              FIM DA CONFIGURAÇÃO — não edite abaixo                 ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+
+
+// ── Resolve cor pelo nome do CFG.colors ─────────────────────────────────
+function col(name) { return CFG.colors[name] || name; }
+
+// ── CANVAS EFEITOS CRT ──────────────────────────────────────────────────
+const fxCanvas = document.getElementById('fx');
+const fxCtx    = fxCanvas.getContext('2d');
+let W, H;
+
+function resizeFX() {
+  W = fxCanvas.width  = window.innerWidth;
+  H = fxCanvas.height = window.innerHeight;
+}
+resizeFX();
+window.addEventListener('resize', resizeFX);
+
+// Estado CRT
+let crtPhase    = 'off';  // off | booton | on | bootoff
+let crtProgress = 0;      // 0–1 para animações de boot
+let crtBootDir  = 1;
+let crtBootStart= 0;
+const crtBootMs = CFG.crt.boot_anim_ms;
+let flickerVal  = 1;
+
+// Noise buffer (regenerado a cada frame)
+let noiseFrame  = 0;
+
+function drawCRT(ts) {
+  fxCtx.clearRect(0, 0, W, H);
+
+  // ── Fundo
+  fxCtx.fillStyle = col('bg');
+  fxCtx.fillRect(0, 0, W, H);
+
+  // ── Boot on: linha central se expandindo verticalmente
+  if (crtPhase === 'booton') {
+    const elapsed = ts - crtBootStart;
+    crtProgress   = Math.min(elapsed / crtBootMs, 1);
+    const eased   = easeOutCubic(crtProgress);
+    const clipH   = Math.round(H * eased);
+    const clipY   = Math.round((H - clipH) / 2);
+    // Revelar conteúdo do terminal usando clip
+    document.getElementById('terminal').style.clipPath =
+      `inset(${clipY}px 0px ${H - clipY - clipH}px 0px)`;
+    if (crtProgress >= 1) {
+      crtPhase = 'on';
+      document.getElementById('terminal').style.clipPath = 'none';
+    }
+  }
+
+  // ── Boot off: linha central encolhendo
+  if (crtPhase === 'bootoff') {
+    const elapsed = ts - crtBootStart;
+    crtProgress   = Math.min(elapsed / CFG.crt_off.anim_ms, 1);
+    const eased   = easeInCubic(crtProgress);
+    const clipH   = Math.round(H * (1 - eased));
+    const clipY   = Math.round((H - clipH) / 2);
+    document.getElementById('terminal').style.clipPath =
+      `inset(${clipY}px 0px ${H - clipY - clipH}px 0px)`;
+    if (crtProgress >= 1) {
+      crtPhase = 'off';
+      document.getElementById('terminal').style.clipPath = 'none';
+      document.getElementById('terminal').style.opacity  = String(CFG.crt_off.dim_brightness);
+      onCRTOffDone();
+    }
+  }
+
+  // ── Flicker
+  if (CFG.crt.flicker && crtPhase === 'on') {
+    flickerVal = 1 - Math.random() * CFG.crt.flicker_intensity;
+  } else {
+    flickerVal = 1;
+  }
+
+  // ── Scanlines
+  if (CFG.crt.scanline_opacity > 0) {
+    for (let y = 0; y < H; y += 4) {
+      fxCtx.fillStyle = `rgba(0,0,0,${CFG.crt.scanline_opacity})`;
+      fxCtx.fillRect(0, y + 2, W, 2);
+    }
+  }
+
+  // ── Noise
+  if (CFG.crt.noise_strength > 0 && crtPhase !== 'off') {
+    noiseFrame++;
+    if (noiseFrame % 2 === 0) { // every 2 frames for perf
+      const imgd = fxCtx.createImageData(W, H);
+      const d    = imgd.data;
+      const str  = CFG.crt.noise_strength * 255;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = (Math.random() * str) | 0;
+        d[i]=d[i+1]=d[i+2]=v; d[i+3]=40;
+      }
+      fxCtx.putImageData(imgd, 0, 0);
+    }
+  }
+
+  // ── Vignette
+  if (CFG.crt.vignette_strength > 0) {
+    const grad = fxCtx.createRadialGradient(W/2,H/2,H*0.3, W/2,H/2,H*0.8);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(0,0,0,${CFG.crt.vignette_strength})`);
+    fxCtx.fillStyle = grad;
+    fxCtx.fillRect(0, 0, W, H);
+  }
+
+  // ── Curvature overlay (barrel distortion illusion via gradient)
+  if (CFG.crt.curvature) {
+    const cx = fxCtx.createRadialGradient(W/2,H/2,0, W/2,H/2,Math.max(W,H)*0.6);
+    cx.addColorStop(0,   'rgba(0,0,0,0)');
+    cx.addColorStop(0.7, 'rgba(0,0,0,0)');
+    cx.addColorStop(1,   'rgba(0,0,0,0.35)');
+    fxCtx.fillStyle = cx;
+    fxCtx.fillRect(0, 0, W, H);
+  }
+
+  // Apply flicker to terminal
+  if (document.getElementById('terminal').style.display !== 'none') {
+    document.getElementById('terminal').style.opacity =
+      (crtPhase === 'on' ? flickerVal : crtProgress > 0 ? flickerVal * crtProgress : 0).toFixed(3);
+  }
+
+  requestAnimationFrame(drawCRT);
+}
+requestAnimationFrame(drawCRT);
+
+function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+function easeInCubic(t)  { return t * t * t; }
+
+// ── Web Audio ───────────────────────────────────────────────────────────
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playCRTOn() {
+  const ctx = getAudio();
+  const bufLen = Math.floor(ctx.sampleRate * 0.3);
+  const buf  = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i=0;i<bufLen;i++) data[i]=(Math.random()*2-1)*(1-i/bufLen);
+  const src=ctx.createBufferSource(), gain=ctx.createGain();
+  src.buffer=buf;
+  gain.gain.setValueAtTime(CFG.audio.crt_on_volume, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.3);
+  src.connect(gain); gain.connect(ctx.destination); src.start();
+
+  const osc=ctx.createOscillator(), og=ctx.createGain();
+  osc.type='sawtooth';
+  osc.frequency.setValueAtTime(CFG.audio.whine_freq_start, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(CFG.audio.whine_freq_end, ctx.currentTime+0.6);
+  og.gain.setValueAtTime(0.04, ctx.currentTime);
+  og.gain.exponentialRampToValueAtTime(0.006, ctx.currentTime+0.6);
+  osc.connect(og); og.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+0.6);
+
+  const hum=ctx.createOscillator(), hg=ctx.createGain();
+  hum.type='sine'; hum.frequency.value=60;
+  hg.gain.setValueAtTime(0,ctx.currentTime);
+  hg.gain.linearRampToValueAtTime(0.04, ctx.currentTime+0.5);
+  hum.connect(hg); hg.connect(ctx.destination); hum.start(); hum.stop(ctx.currentTime+1.2);
+}
+
+function playCRTOff() {
+  const ctx = getAudio();
+  const osc=ctx.createOscillator(), og=ctx.createGain();
+  osc.type='sawtooth';
+  osc.frequency.setValueAtTime(CFG.audio.whine_freq_end, ctx.currentTime);
+  osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime+0.45);
+  og.gain.setValueAtTime(CFG.audio.crt_off_volume*0.3, ctx.currentTime);
+  og.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.45);
+  osc.connect(og); og.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+0.5);
+
+  const osc2=ctx.createOscillator(), og2=ctx.createGain();
+  osc2.type='sine'; osc2.frequency.value=70;
+  og2.gain.setValueAtTime(CFG.audio.crt_off_volume, ctx.currentTime);
+  og2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.18);
+  osc2.connect(og2); og2.connect(ctx.destination); osc2.start(); osc2.stop(ctx.currentTime+0.2);
+}
+
+function playKey() {
+  const ctx = getAudio();
+  const bufLen = Math.floor(ctx.sampleRate * 0.04);
+  const buf  = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i=0;i<bufLen;i++) data[i]=(Math.random()*2-1)*Math.exp(-i/(bufLen*0.22));
+  const src=ctx.createBufferSource(), g=ctx.createGain();
+  src.buffer=buf; g.gain.value=CFG.audio.key_volume;
+  src.connect(g); g.connect(ctx.destination); src.start();
+}
+
+// ── PROMPT INICIAL ──────────────────────────────────────────────────────
+const promptEl = document.getElementById('prompt-label');
+promptEl.style.cssText = `
+  color: ${col('prompt_text')};
+  font-family: ${CFG.font.family};
+  font-size: ${CFG.prompt.font_size};
+  letter-spacing: ${CFG.prompt.letter_spacing};
+  animation: float-prompt ${CFG.prompt.float_duration} ease-in-out infinite;
+`;
+document.head.insertAdjacentHTML('beforeend', `<style>
+  @keyframes float-prompt {
+    0%,100% { transform: translateY(0); opacity:0.5; }
+    50%      { transform: translateY(-${CFG.prompt.float_amplitude}); opacity:1; }
+  }
+</style>`);
+
+let promptIdx = 0;
+promptEl.textContent = CFG.prompt.texts[0];
+setInterval(() => {
+  promptIdx = (promptIdx + 1) % CFG.prompt.texts.length;
+  promptEl.textContent = CFG.prompt.texts[promptIdx];
+}, CFG.prompt.toggle_ms);
+
+// ── TERMINAL SETUP ──────────────────────────────────────────────────────
+const termEl = document.getElementById('terminal');
+termEl.style.cssText = `
+  position:absolute; inset:0;
+  padding: clamp(16px,3vw,36px) clamp(18px,4vw,52px);
+  font-family: ${CFG.font.family};
+  font-size: ${CFG.font.size};
+  line-height: ${CFG.font.line_height};
+  color: ${col('primary')};
+  text-shadow: 0 0 6px ${col('primary')};
+  overflow:hidden;
+  opacity:0;
+`;
+
+function makeLineEl(text, colorName) {
+  const d = document.createElement(text === '' ? 'br' : 'div');
+  if (text !== '') {
+    d.textContent = text;
+    d.style.color = col(colorName || 'primary');
+    d.style.textShadow = `0 0 6px ${col(colorName || 'primary')}40`;
+  }
+  return d;
+}
+
+function addLine(text, colorName) {
+  termEl.appendChild(makeLineEl(text, colorName));
+  termEl.scrollTop = termEl.scrollHeight;
+}
+
+// ── FIRST INTERACTION ───────────────────────────────────────────────────
+let started = false;
+function onStart() {
+  if (started) return; started = true;
+
+  // Hide prompt
+  const cp = document.getElementById('click-prompt');
+  cp.style.transition = 'opacity 0.5s';
+  cp.style.opacity    = '0';
+  setTimeout(() => cp.style.display = 'none', 500);
+
+  // Fullscreen
+  try {
+    const el = document.documentElement;
+    (el.requestFullscreen || el.webkitRequestFullscreen || (()=>{})).call(el);
+  } catch(e){}
+
+  // Show terminal (invisible) then boot
+  termEl.style.display = 'block';
+  termEl.style.opacity = '0';
+
+  setTimeout(() => {
+    playCRTOn();
+    crtPhase     = 'booton';
+    crtBootStart = performance.now();
+    requestAnimationFrame(ts => { crtBootStart = ts; });
+    setTimeout(runBoot, 100);
+  }, 200);
+}
+document.addEventListener('click',   onStart, { once: true });
+document.addEventListener('keydown', onStart, { once: true });
+
+// ── BOOT SEQUENCE ───────────────────────────────────────────────────────
+function runBoot() {
+  let acc = 0;
+  CFG.boot_lines.forEach(({ text, color, delay_ms }) => {
+    acc += delay_ms;
+    setTimeout(() => addLine(text, color), acc);
+  });
+
+  // ASCII art
+  acc += 200;
+  setTimeout(() => {
+    const pre = document.createElement('pre');
+    pre.textContent = CFG.ascii_art;
+    pre.style.cssText = `
+      font-size: ${CFG.ascii_font_size};
+      line-height: 1.15;
+      color: ${col(CFG.ascii_color)};
+      text-shadow: 0 0 10px ${col(CFG.ascii_color)}66;
+      white-space: pre;
+      margin: 6px 0 10px;
+    `;
+    termEl.appendChild(pre);
+    termEl.scrollTop = termEl.scrollHeight;
+  }, acc);
+
+  acc += CFG.ascii_after_ms;
+  setTimeout(runMenu, acc);
+}
+
+// ── MENU ────────────────────────────────────────────────────────────────
+function runMenu() {
+  let acc = 0;
+  CFG.menu_lines.forEach(({ text, color, delay_ms }) => {
+    acc += delay_ms;
+    setTimeout(() => addLine(text, color), acc);
+  });
+
+  acc += 200;
+  setTimeout(runCommandPhase, acc);
+}
+
+// ── COMMAND TYPING ──────────────────────────────────────────────────────
+function runCommandPhase() {
+  // Prompt line
+  const line = document.createElement('div');
+  line.style.display = 'flex';
+  line.style.gap     = '4px';
+
+  const promptSpan = document.createElement('span');
+  promptSpan.textContent = CFG.sys_prompt + ' ';
+  promptSpan.style.color = col('dim');
+
+  const typedSpan = document.createElement('span');
+  typedSpan.style.color = col('primary');
+
+  const cursorSpan = document.createElement('span');
+  cursorSpan.style.cssText = `
+    display:inline-block; width:0.55em; height:1em;
+    background:${col('primary')}; vertical-align:text-bottom;
+    animation: blink-cur 0.8s step-end infinite;
+    box-shadow: 0 0 6px ${col('primary')};
+  `;
+  document.head.insertAdjacentHTML('beforeend', `<style>@keyframes blink-cur{0%,100%{opacity:1}50%{opacity:0}}</style>`);
+
+  line.appendChild(promptSpan);
+  line.appendChild(typedSpan);
+  line.appendChild(cursorSpan);
+  termEl.appendChild(line);
+  termEl.scrollTop = termEl.scrollHeight;
+
+  setTimeout(() => {
+    const cmd = CFG.command.text;
+    let i = 0;
+    function typeNext() {
+      if (i <= cmd.length) {
+        typedSpan.textContent = cmd.slice(0, i);
+        i++;
+        if (i <= cmd.length) {
+          playKey();
+          const jitter = 1 + (Math.random() - 0.5) * CFG.command.speed_jitter;
+          setTimeout(typeNext, CFG.command.speed_ms * jitter);
+        } else {
+          cursorSpan.remove();
+          setTimeout(runCRTOff, CFG.command.post_delay_ms);
+        }
+      }
+    }
+    typeNext();
+  }, CFG.command.pre_delay_ms);
+}
+
+// ── CRT OFF ─────────────────────────────────────────────────────────────
+function runCRTOff() {
+  playCRTOff();
+  crtPhase     = 'bootoff';
+  crtBootStart = performance.now();
+}
+
+function onCRTOffDone() {
+  // Tela completamente preta — esconde tudo
+  termEl.style.display = 'none';
+  // O canvas já está desenhando fundo preto puro neste ponto
+  setTimeout(showDialog, CFG.crt_off.dark_pause_ms);
+}
+
+// ── DIALOG ──────────────────────────────────────────────────────────────
+function showDialog() {
+  const D   = CFG.dialog;
+  const box = document.getElementById('dialog');
+
+  box.style.cssText = `
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: ${D.bottom_offset};
+    transform: translateX(-50%) translateY(14px);
+    width: min(${D.width}, 90vw);
+    background: ${col('dialog_bg')};
+    border: 1px solid ${col('dialog_border')};
+    box-shadow: 0 0 30px ${col('dialog_border')}55, 0 0 60px ${col('dialog_border')}22;
+    opacity: 0;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+    z-index: 500;
+  `;
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.textContent = D.title;
+  hdr.style.cssText = `
+    background: ${col('dialog_header_bg')};
+    color: ${col('dialog_header_text')};
+    font-family: ${D.title_font_family};
+    font-size: ${D.title_font_size};
+    letter-spacing: 0.3em;
+    padding: 5px 14px;
+    font-weight: bold;
+  `;
+
+  // Body
+  const body = document.createElement('div');
+  body.style.cssText = `
+    padding: 18px 20px 20px;
+    color: ${col('primary')};
+    font-family: ${D.body_font_family};
+    font-size: ${D.body_font_size};
+    line-height: ${D.body_line_height};
+    text-shadow: 0 0 8px ${col('primary')}55;
+    min-height: 60px;
+    white-space: pre-wrap;
+  `;
+
+  box.appendChild(hdr);
+  box.appendChild(body);
+
+  // Animate box in
+  void box.offsetWidth;
+  box.style.opacity   = '1';
+  box.style.transform = 'translateX(-50%) translateY(0)';
+
+  // ── Typewriter: digits all lines one after another ───────────────────
+  // We build a flat list of "segments" — each segment is plain or italic text.
+  // The cursor blinks at the end of whatever has been typed so far.
+
+  // Parse *italic* markup into segments: [{text, italic}]
+  function parseSegments(raw) {
+    const segs = [];
+    const re   = /\*(.*?)\*/g;
+    let last   = 0, m;
+    while ((m = re.exec(raw)) !== null) {
+      if (m.index > last) segs.push({ text: raw.slice(last, m.index), italic: false });
+      segs.push({ text: m[1], italic: true });
+      last = re.lastIndex;
+    }
+    if (last < raw.length) segs.push({ text: raw.slice(last), italic: false });
+    return segs;
+  }
+
+  // Build DOM structure for all lines upfront (invisible), then type into them
+  const lineNodes = D.lines.map(() => {
+    const span = document.createElement('span');
+    body.appendChild(span);
+    return span;
+  });
+
+  // Cursor element (moves to end of typed content)
+  const cur = document.createElement('span');
+  cur.style.cssText = `
+    display: inline-block;
+    width: 0.6em; height: 0.9em;
+    background: ${col('primary')};
+    vertical-align: text-bottom;
+    margin-left: 1px;
+    box-shadow: 0 0 6px ${col('primary')};
+    animation: blink-cur 0.75s step-end infinite;
+  `;
+
+  // Type a single line's full text (with markup) into its node, call done() when finished
+  function typeLine(lineIdx, done) {
+    const raw  = D.lines[lineIdx].text;
+    const segs = parseSegments(raw);
+    const node = lineNodes[lineIdx];
+
+    // Add a space separator before this line (except first)
+    if (lineIdx > 0) {
+      const space = document.createTextNode(' ');
+      node.appendChild(space);
+    }
+
+    // Move cursor to end of this node
+    node.appendChild(cur);
+
+    // Flatten all characters with their italic flag
+    const chars = [];
+    segs.forEach(({ text, italic }) => {
+      for (const ch of text) chars.push({ ch, italic });
+    });
+
+    let charIdx = 0;
+    // Current span being written into
+    let curSpan = null;
+    let curItalic = null;
+
+    function typeChar() {
+      if (charIdx >= chars.length) {
+        done();
+        return;
+      }
+      const { ch, italic } = chars[charIdx++];
+
+      // Create new span if style changes
+      if (curSpan === null || italic !== curItalic) {
+        curSpan = document.createElement('span');
+        if (italic) {
+          curSpan.style.fontStyle = 'italic';
+          curSpan.style.color     = col('bright');
+        }
+        node.insertBefore(curSpan, cur);
+        curItalic = italic;
+      }
+      curSpan.textContent += ch;
+
+      if (D.type_key_sound) playKey();
+
+      const jitter = 1 + (Math.random() - 0.5) * D.type_jitter;
+      setTimeout(typeChar, D.type_speed_ms * jitter);
+    }
+
+    typeChar();
+  }
+
+  // Chain all lines: wait delay_ms after previous line finishes, then type
+  function chainLines(idx) {
+    if (idx >= D.lines.length) {
+      // All lines done — linger then fade out
+      setTimeout(() => {
+        box.style.transition = `opacity ${D.fade_ms}ms ease, transform ${D.fade_ms}ms ease`;
+        box.style.opacity    = '0';
+        box.style.transform  = 'translateX(-50%) translateY(14px)';
+        setTimeout(showRedirect, D.fade_ms);
+      }, D.linger_ms);
+      return;
+    }
+
+    setTimeout(() => {
+      typeLine(idx, () => chainLines(idx + 1));
+    }, D.lines[idx].delay_ms);
+  }
+
+  chainLines(0);
+}
+
+// ── REDIRECT ────────────────────────────────────────────────────────────
+function showRedirect() {
+  const rdiv = document.getElementById('redir');
+  rdiv.style.cssText = `
+    display:flex;
+    position:absolute;inset:0;
+    flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:16px;
+    font-family:${CFG.font.family};
+    font-size:11px;
+    letter-spacing:0.25em;
+    color:${col('redir_text')};
+    text-shadow:0 0 8px ${col('redir_text')}66;
+    z-index:600;
+  `;
+
+  const txt = document.createElement('div');
+  txt.textContent = CFG.redirect.text;
+
+  const barWrap = document.createElement('div');
+  barWrap.style.cssText = `width:220px;height:5px;border:1px solid ${col('dim')};position:relative;overflow:hidden;`;
+
+  const bar = document.createElement('div');
+  bar.style.cssText = `height:100%;width:0%;background:${col('redir_bar')};box-shadow:0 0 8px ${col('redir_bar')};transition:width ${CFG.redirect.bar_fill_ms}ms linear;`;
+
+  barWrap.appendChild(bar);
+  rdiv.appendChild(txt);
+  rdiv.appendChild(barWrap);
+
+  void bar.offsetWidth;
+  setTimeout(() => bar.style.width = '100%', 30);
+
+  setTimeout(() => {
+    document.body.style.transition = `opacity ${CFG.redirect.fade_out_ms}ms ease`;
+    document.body.style.opacity    = '0';
+    setTimeout(() => window.location.href = CFG.redirect.go_to,
+      CFG.redirect.fade_out_ms + 50);
+  }, CFG.redirect.bar_fill_ms + 200);
+}
+</script>
+</body>
+</html>
