@@ -1,10 +1,8 @@
 // ══════════════════════════════════════════
-// CURSOR TRAIL — canvas overlay (performático, sem DOM spam)
+// CURSOR TRAIL — canvas overlay
 // ══════════════════════════════════════════
 const trailCanvas = document.createElement('canvas');
-trailCanvas.id = 'trail-canvas';
-trailCanvas.style.cssText =
-  'position:fixed;inset:0;pointer-events:none;z-index:99997;';
+trailCanvas.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99997;';
 document.body.appendChild(trailCanvas);
 const trailCtx = trailCanvas.getContext('2d');
 
@@ -15,12 +13,10 @@ function resizeTrail() {
 resizeTrail();
 window.addEventListener('resize', resizeTrail);
 
-// Pontos do rastro primário (dot) e secundário (ring)
-const dotPoints  = [];  // rastro do cursor principal
-const ringPoints = [];  // rastro do ring
-
-const DOT_MAX  = 18;
-const RING_MAX = 12;
+const dotPoints  = [];
+const ringPoints = [];
+const DOT_MAX    = 18;
+const RING_MAX   = 12;
 
 let mouseX = 0, mouseY = 0;
 let ringX  = 0, ringY  = 0;
@@ -33,57 +29,49 @@ document.addEventListener('mousemove', e => {
   mouseY = e.clientY;
   cursorDot.style.left = mouseX + 'px';
   cursorDot.style.top  = mouseY + 'px';
-
   dotPoints.push({ x: mouseX, y: mouseY });
   if (dotPoints.length > DOT_MAX) dotPoints.shift();
 });
 
-// Ring follow — mais rápido (0.20)
+// Ring — mais rápido (0.22)
 (function animRing() {
-  ringX += (mouseX - ringX) * 0.20;
-  ringY += (mouseY - ringY) * 0.20;
+  ringX += (mouseX - ringX) * 0.22;
+  ringY += (mouseY - ringY) * 0.22;
   cursorRing.style.left = ringX + 'px';
   cursorRing.style.top  = ringY + 'px';
-
   ringPoints.push({ x: ringX, y: ringY });
   if (ringPoints.length > RING_MAX) ringPoints.shift();
-
   requestAnimationFrame(animRing);
 })();
 
-// Desenha rastros no canvas a cada frame
+// Desenha rastros no canvas
 (function drawTrails() {
   trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
 
-  // Rastro primário — linha contínua fina com brilho vermelho
+  // Rastro primário — linha com brilho
   if (dotPoints.length > 1) {
     for (let i = 1; i < dotPoints.length; i++) {
       const t = i / dotPoints.length;
-      const alpha = t * 0.85;
-      const width = t * 2.5;
       trailCtx.beginPath();
       trailCtx.moveTo(dotPoints[i - 1].x, dotPoints[i - 1].y);
-      trailCtx.lineTo(dotPoints[i].x, dotPoints[i].y);
-      trailCtx.strokeStyle = `rgba(220,0,0,${alpha})`;
-      trailCtx.lineWidth = width;
-      trailCtx.lineCap = 'round';
+      trailCtx.lineTo(dotPoints[i].x,     dotPoints[i].y);
+      trailCtx.strokeStyle = `rgba(220,0,0,${t * 0.85})`;
+      trailCtx.lineWidth   = t * 2.5;
+      trailCtx.lineCap     = 'round';
       trailCtx.shadowColor = '#cc0000';
-      trailCtx.shadowBlur = 6;
+      trailCtx.shadowBlur  = 6;
       trailCtx.stroke();
     }
   }
 
-  // Rastro ring — pontos pequenos neon
-  trailCtx.shadowBlur = 0;
+  // Rastro ring — pontos neon
   for (let i = 0; i < ringPoints.length; i++) {
     const t = i / ringPoints.length;
-    const alpha = t * 0.5;
-    const r = t * 3;
     trailCtx.beginPath();
-    trailCtx.arc(ringPoints[i].x, ringPoints[i].y, r, 0, Math.PI * 2);
-    trailCtx.fillStyle = `rgba(255,60,60,${alpha})`;
+    trailCtx.arc(ringPoints[i].x, ringPoints[i].y, t * 3, 0, Math.PI * 2);
+    trailCtx.fillStyle   = `rgba(255,60,60,${t * 0.5})`;
     trailCtx.shadowColor = '#ff3030';
-    trailCtx.shadowBlur = 8;
+    trailCtx.shadowBlur  = 8;
     trailCtx.fill();
   }
 
@@ -107,17 +95,17 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
   resize();
   window.addEventListener('resize', resize);
 
-  const ZONE = 70, COUNT = 30;
+  const COUNT = 30;
   const particles = [];
 
   function makeParticle() {
     const side = Math.floor(Math.random() * 4);
     let x, y, dx, dy;
     const spd = 0.7 + Math.random() * 1.4;
-    if (side === 0)      { x = Math.random() * ZONE;      y = Math.random() * H;    dx = spd;  dy = 0; }
-    else if (side === 1) { x = W - Math.random() * ZONE;  y = Math.random() * H;    dx = -spd; dy = 0; }
-    else if (side === 2) { x = Math.random() * W;          y = Math.random() * ZONE; dx = 0;    dy = spd; }
-    else                 { x = Math.random() * W;          y = H - Math.random() * ZONE; dx = 0; dy = -spd; }
+    if      (side === 0) { x = Math.random() * 70;     y = Math.random() * H;      dx = spd;  dy = 0; }
+    else if (side === 1) { x = W - Math.random() * 70; y = Math.random() * H;      dx = -spd; dy = 0; }
+    else if (side === 2) { x = Math.random() * W;       y = Math.random() * 70;     dx = 0;    dy = spd; }
+    else                 { x = Math.random() * W;       y = H - Math.random() * 70; dx = 0;    dy = -spd; }
     return {
       x, y, dx, dy,
       trail: [], maxTrail: 35 + Math.floor(Math.random() * 55),
@@ -167,7 +155,7 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
 })();
 
 // ══════════════════════════════════════════
-// AUDIO — toca no primeiro clique real
+// AUDIO — toca no clique do login (primeira interação)
 // ══════════════════════════════════════════
 const ambientEl = document.getElementById('ambient');
 if (ambientEl) ambientEl.volume = 0.70;
@@ -175,12 +163,10 @@ let audioStarted = false;
 
 function startAudio() {
   if (audioStarted || !ambientEl) return;
-  ambientEl.play().then(() => { audioStarted = true; }).catch(() => {});
+  ambientEl.play()
+    .then(() => { audioStarted = true; })
+    .catch(() => {});
 }
-
-['click', 'keydown', 'touchstart', 'mousedown'].forEach(ev =>
-  document.addEventListener(ev, startAudio, { once: false })
-);
 
 // ══════════════════════════════════════════
 // LOGIN
@@ -193,78 +179,73 @@ document.getElementById('login-pass').addEventListener('keydown', e => {
 });
 
 function tryLogin() {
-  startAudio();
+  startAudio(); // clique no botão = primeira interação, áudio libera aqui
+
   const user = document.getElementById('login-user').value.trim();
   const pass = document.getElementById('login-pass').value;
   const err  = document.getElementById('login-error');
 
   if (!user) {
-    err.textContent  = '⚠ IDENTIFICADOR REQUERIDO';
+    err.textContent   = '⚠ IDENTIFICADOR REQUERIDO';
     err.style.opacity = 1;
     return;
   }
 
   if (pass !== PASS) {
-    err.textContent  = '⛔ ACESSO NEGADO — CREDENCIAIS INVÁLIDAS';
+    err.textContent   = '⛔ ACESSO NEGADO — CREDENCIAIS INVÁLIDAS';
     err.style.opacity = 1;
     showFractalError();
     return;
   }
 
-  err.textContent  = '';
+  err.textContent   = '';
   err.style.opacity = 0;
   acceptLogin();
 }
 
-// ── Senha ERRADA — fractal de erro, tela travada (F5 para sair)
+// ── Senha ERRADA — fractal aparece, tela trava, precisa de F5
 function showFractalError() {
   const overlay = document.getElementById('fractal-overlay');
   const popup   = document.getElementById('fractal-popup');
   const footer  = document.getElementById('fractal-footer');
 
-  footer.textContent = 'ACESSO NEGADO — REGISTRANDO TENTATIVA // F5 PARA TENTAR NOVAMENTE';
-
+  footer.textContent    = 'ACESSO NEGADO — REGISTRANDO TENTATIVA // F5 PARA TENTAR NOVAMENTE';
   overlay.style.display = 'block';
   popup.style.display   = 'block';
 
-  // força reflow antes de adicionar classe de transição
-  void popup.offsetWidth;
+  void popup.offsetWidth; // força reflow para a transição CSS disparar
   popup.classList.add('visible');
 
-  // Trava inputs
-  document.getElementById('login-user').disabled = true;
-  document.getElementById('login-pass').disabled = true;
-  document.getElementById('login-btn').disabled  = true;
+  document.getElementById('login-user').disabled     = true;
+  document.getElementById('login-pass').disabled     = true;
+  document.getElementById('login-btn').disabled      = true;
   document.getElementById('login-btn').style.opacity = '0.3';
 }
 
-// ── Senha CORRETA — fractal de sucesso, depois lança o site
+// ── Senha CORRETA — fractal de sucesso por 4s, depois lança o site
 function acceptLogin() {
-  // Esconde tela de login imediatamente
   document.getElementById('login-screen').style.display = 'none';
 
   const overlay = document.getElementById('fractal-overlay');
   const popup   = document.getElementById('fractal-popup');
   const footer  = document.getElementById('fractal-footer');
 
-  footer.textContent = 'IDENTIDADE CONFIRMADA — INICIANDO SESSÃO SEGURA';
-
+  footer.textContent    = 'IDENTIDADE CONFIRMADA — INICIANDO SESSÃO SEGURA';
   overlay.style.display = 'block';
   popup.style.display   = 'block';
 
   void popup.offsetWidth;
   popup.classList.add('visible');
 
-  // Após 4s, fade-out e lança o site
   setTimeout(() => {
     popup.classList.remove('visible');
     overlay.style.transition = 'opacity 0.5s ease';
     overlay.style.opacity    = '0';
     setTimeout(() => {
-      overlay.style.display   = 'none';
-      overlay.style.opacity   = '';
+      overlay.style.display    = 'none';
+      overlay.style.opacity    = '';
       overlay.style.transition = '';
-      popup.style.display     = 'none';
+      popup.style.display      = 'none';
       launchSite();
     }, 500);
   }, 4000);
@@ -279,7 +260,7 @@ function launchSite() {
   initScrollReveal();
   initVolControl();
   setFooterDate();
-  loadGIF();
+  initCharVideo();
   attachHoverCursor();
 }
 
@@ -302,18 +283,18 @@ function initScrollReveal() {
 function initVolControl() {
   const slider = document.getElementById('vol-slider');
   const pct    = document.getElementById('vol-pct');
+  if (!slider) return;
   slider.addEventListener('input', () => {
-    if (!ambientEl) return;
-    const v = Math.max(0.10, parseInt(slider.value) / 100);
-    ambientEl.volume = v;
-    pct.textContent  = slider.value + '%';
+    if (ambientEl) ambientEl.volume = Math.max(0.10, parseInt(slider.value) / 100);
+    if (pct) pct.textContent = slider.value + '%';
   });
 }
 
 function setFooterDate() {
-  const d = new Date();
-  document.getElementById('footer-date').textContent =
-    `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')} // DOCUMENTO CONTROLADO`;
+  const d  = new Date();
+  const el = document.getElementById('footer-date');
+  if (el) el.textContent =
+    `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')} // DOCUMENTO CONTROLADO`;
 }
 
 function attachHoverCursor() {
@@ -324,36 +305,118 @@ function attachHoverCursor() {
 }
 
 // ══════════════════════════════════════════
-// GIF — scroll-controlled
+// PERSONAGEM — MP4 com chroma key no canvas
 // ══════════════════════════════════════════
-let gifFrames = [];
-let gifGlobalWidth = 720, gifGlobalHeight = 720;
+//
+// AJUSTE AQUI se necessário:
+//   CHROMA_THRESH mais alto  → remove menos verde (borda verde aparece)
+//   CHROMA_THRESH mais baixo → remove mais verde (pode comer a personagem)
+//
+const CHROMA_THRESH = 0.30;
+
+function initCharVideo() {
+  const canvas  = document.getElementById('char-canvas');
+  const ctx     = canvas.getContext('2d', { willReadFrequently: true });
+  const wrapper = document.getElementById('char-wrapper');
+
+  // Vídeo oculto — apenas usado como fonte de frames
+  const video       = document.createElement('video');
+  video.src         = 'character.mp4';
+  video.muted       = true;
+  video.playsInline = true;
+  video.preload     = 'auto';
+  video.style.display = 'none';
+  wrapper.appendChild(video);
+
+  let videoReady = false;
+
+  video.addEventListener('loadeddata', () => {
+    videoReady = true;
+    video.currentTime = 0; // vai ao frame 0, dispara 'seeked'
+  });
+
+  // Toda vez que o vídeo termina de buscar um frame, renderiza com chroma key
+  video.addEventListener('seeked', () => {
+    if (videoReady) drawChromaFrame(canvas, ctx, video);
+  });
+
+  // Se não tiver mp4, cai no GIF como antes
+  video.addEventListener('error', () => {
+    console.warn('character.mp4 não encontrado — usando GIF fallback');
+    wrapper.removeChild(video);
+    loadGIFFallback();
+  });
+
+  // Controle de scroll
+  window.addEventListener('scroll', () => {
+    if (!videoReady || !video.duration) return;
+    const maxScroll = Math.max(1, document.body.scrollHeight - window.innerHeight);
+    const progress  = Math.min(window.scrollY / maxScroll, 1);
+    video.currentTime = progress * video.duration;
+  }, { passive: true });
+}
+
+function drawChromaFrame(canvas, ctx, video) {
+  const W = canvas.width;
+  const H = canvas.height;
+
+  ctx.drawImage(video, 0, 0, W, H);
+
+  const imageData = ctx.getImageData(0, 0, W, H);
+  const data      = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i]     / 255;
+    const g = data[i + 1] / 255;
+    const b = data[i + 2] / 255;
+
+    // Quanto esse pixel é "verde" em relação a r e b
+    // Verde puro (0,1,0)      → greenness ≈ 1 → removido totalmente
+    // Verde de sombra (0,.4,0) → greenness parcial → alpha reduzido (sombra preservada)
+    // Cores da personagem      → greenness baixo  → intocado
+    const greenness = (2 * g - r - b) / 2;
+    const amount    = Math.max(0, (greenness - CHROMA_THRESH) / (1 - CHROMA_THRESH));
+
+    if (amount > 0) {
+      // Corrige o "derrame" de verde nas bordas antes de tornar transparente
+      data[i]     = Math.min(255, data[i]     + data[i + 1] * amount);
+      data[i + 2] = Math.min(255, data[i + 2] + data[i + 1] * amount);
+      data[i + 1] = Math.round(data[i + 1] * (1 - amount));
+      data[i + 3] = Math.round(255 * (1 - amount));
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+// ══════════════════════════════════════════
+// GIF FALLBACK
+// ══════════════════════════════════════════
+let gifFrames       = [];
+let gifGlobalWidth  = 720;
+let gifGlobalHeight = 720;
 let currentGifFrame = -1;
 
 const offscreenCanvas = document.createElement('canvas');
-const offCtx = offscreenCanvas.getContext('2d');
+const offCtx          = offscreenCanvas.getContext('2d');
 const compositeCanvas = document.createElement('canvas');
 compositeCanvas.width  = 720;
 compositeCanvas.height = 720;
 const compositeCtx = compositeCanvas.getContext('2d');
 
-function loadGIF() {
+function loadGIFFallback() {
   const canvas   = document.getElementById('char-canvas');
   const ctx      = canvas.getContext('2d');
   const gifImage = new Image();
   gifImage.crossOrigin = 'anonymous';
-  gifImage.onload = () => {
-    ctx.clearRect(0, 0, 720, 720);
-    ctx.drawImage(gifImage, 0, 0, 720, 720);
-    tryGifuct();
-  };
-  gifImage.onerror = () => console.warn('character.gif not found');
+  gifImage.onload  = () => { ctx.clearRect(0, 0, 720, 720); ctx.drawImage(gifImage, 0, 0, 720, 720); tryGifuct(); };
+  gifImage.onerror = () => console.warn('character.gif também não encontrado');
   gifImage.src = 'character.gif';
 }
 
 function tryGifuct() {
-  const s = document.createElement('script');
-  s.src    = 'https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js';
+  const s   = document.createElement('script');
+  s.src     = 'https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js';
   s.onload  = fetchAndParseGIF;
   s.onerror = () => console.warn('gifuct-js CDN failed');
   document.head.appendChild(s);
@@ -363,10 +426,10 @@ function fetchAndParseGIF() {
   fetch('character.gif')
     .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.arrayBuffer(); })
     .then(buf => {
-      const gif    = window.parseGIF(buf);
+      const gif       = window.parseGIF(buf);
       gifGlobalWidth  = gif.lsd.width;
       gifGlobalHeight = gif.lsd.height;
-      const frames = window.decompressFrames(gif, true);
+      const frames    = window.decompressFrames(gif, true);
       if (!frames || !frames.length) return;
       gifFrames = frames;
       offscreenCanvas.width  = gifGlobalWidth;
@@ -392,11 +455,9 @@ function renderGifFrame(index) {
   patchCanvas.height = frame.dims.height;
   patchCanvas.getContext('2d').putImageData(imageData, 0, 0);
   const scaleX = 720 / gifGlobalWidth, scaleY = 720 / gifGlobalHeight;
-  compositeCtx.drawImage(
-    patchCanvas,
-    frame.dims.left  * scaleX, frame.dims.top * scaleY,
-    frame.dims.width * scaleX, frame.dims.height * scaleY
-  );
+  compositeCtx.drawImage(patchCanvas,
+    frame.dims.left * scaleX, frame.dims.top * scaleY,
+    frame.dims.width * scaleX, frame.dims.height * scaleY);
   ctx.clearRect(0, 0, 720, 720);
   ctx.drawImage(compositeCanvas, 0, 0);
 }
