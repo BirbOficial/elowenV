@@ -323,10 +323,6 @@ function attachHoverCursor() {
     el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
   });
 }
-    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
-    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
-  });
-}
 
 // ══════════════════════════════════════════
 // PERSONAGEM — MP4 com chroma key no canvas
