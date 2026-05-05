@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<link rel="icon" type="image/gif" href="logo.png">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLASSIFIED // GDA-VESPER // CL.6</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- CUSTOM CURSOR -->
+<div id="cursor-dot"></div>
+<div id="cursor-ring"></div>
+
+<!-- FIXED TOP LOGO -->
+<div id="top-logo">
+  <svg id="scp-logo" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <!-- SCP logo approximation in tron red style -->
+    <circle cx="100" cy="100" r="90" stroke="#cc0000" stroke-width="3" fill="none" opacity="0.9"/>
+    <circle cx="100" cy="100" r="70" stroke="#cc0000" stroke-width="1.5" fill="none" opacity="0.5"/>
+    <circle cx="100" cy="100" r="50" stroke="#cc0000" stroke-width="1" fill="none" opacity="0.3"/>
+    <!-- Arrow pointing up-left -->
+    <path d="M100 100 L40 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M40 40 L40 65 M40 40 L65 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Arrow pointing up-right -->
+    <path d="M100 100 L160 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M160 40 L160 65 M160 40 L135 40" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Arrow pointing down -->
+    <path d="M100 100 L100 175" stroke="#cc0000" stroke-width="3" stroke-linecap="round"/>
+    <path d="M100 175 L85 155 M100 175 L115 155" stroke="#cc0000" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Center dot -->
+    <circle cx="100" cy="100" r="6" fill="#cc0000" opacity="0.9"/>
+    <circle cx="100" cy="100" r="3" fill="#ff4444"/>
+  </svg>
+  <span id="logo-label">SCP FOUNDATION</span>
+</div>
+
+<audio autoplay loop src="ambient.mp3"></audio>
+</audio>
+<canvas id="tron-canvas"></canvas>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-top">
+    <b>FUNDAÇÃO SCP</b><br>
+    GABINETE DO ADMINISTRADOR — SISTEMA SEGURO<br>
+    ACESSO RESTRITO // NÍVEL 6
+  </div>
+  <div class="login-box">
+    <label>IDENTIFICADOR</label>
+    <input type="text" id="login-user" autocomplete="off" spellcheck="false">
+    <label>SENHA</label>
+    <input type="password" id="login-pass" autocomplete="off">
+    <button class="login-btn" id="login-btn">AUTENTICAR</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- FRACTAL POPUP -->
+<div id="fractal-overlay"></div>
+<div id="fractal-popup">
+  <div id="fractal-popup-inner">
+    <div id="fractal-header">
+      <span>⚠ AVISO DO SISTEMA</span>
+      <span id="fractal-code">ERR-0x█████</span>
+    </div>
+    <img id="fractal-img" src="fractal.png" alt="">
+    <div id="fractal-footer">ACESSO NEGADO — REGISTRANDO TENTATIVA</div>
+  </div>
+</div>
+
+<!-- MAIN SITE -->
+<div id="main-site">
+
+  <div id="char-wrapper">
+    <canvas id="char-canvas" width="720" height="720"></canvas>
+    <div id="char-hud">
+      <svg viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="200" cy="200" r="185" stroke="#cc0000" stroke-width="0.5" stroke-dasharray="4 8"/>
+        <circle cx="200" cy="200" r="168" stroke="#440000" stroke-width="0.5" stroke-dasharray="1 14"/>
+        <line x1="8"   y1="200" x2="38"  y2="200" stroke="#cc0000" stroke-width="0.8"/>
+        <line x1="362" y1="200" x2="392" y2="200" stroke="#cc0000" stroke-width="0.8"/>
+        <line x1="200" y1="8"   x2="200" y2="38"  stroke="#cc0000" stroke-width="0.8"/>
+        <line x1="200" y1="362" x2="200" y2="392" stroke="#cc0000" stroke-width="0.8"/>
+        <text x="212" y="26"  fill="#550000" font-size="8" font-family="Share Tech Mono">GDA//CL6</text>
+        <text x="212" y="382" fill="#550000" font-size="8" font-family="Share Tech Mono">VESPER</text>
+      </svg>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <header class="site-header section visible">
+      <div class="clearance-badge">CLEARANCE LEVEL 6</div>
+      <h1 class="char-name">ELOWEN <span class="v">VESPER</span></h1>
+      <div class="char-sub">GDA — GABINETE DO ADMINISTRADOR</div>
+      <div class="hline"></div>
+    </header>
+
+    <div class="info-grid section visible">
+      <div class="info-cell"><div class="lbl">DESIGNAÇÃO</div><div class="val r">ELOWEN V.</div></div>
+      <div class="info-cell"><div class="lbl">CODINOME</div><div class="val">VESPER</div></div>
+      <div class="info-cell"><div class="lbl">DEPARTAMENTO</div><div class="val">O5 / GDA</div></div>
+      <div class="info-cell"><div class="lbl">ALTURA</div><div class="val">187 cm</div></div>
+      <div class="info-cell"><div class="lbl">STATUS</div><div class="val r">ATIVO</div></div>
+      <div class="info-cell"><div class="lbl">NÍVEL DE ACESSO</div><div class="val"><div class="cl-bar" id="cl-bar"></div></div></div>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">DOSSIÊ PESSOAL</div>
+      <p class="sec-body">
+        <strong>Elowen Vesper</strong> é uma agente sênior do <span class="kw">Gabinete do Administrador</span>, operando sob protocolo de sigilo máximo dentro da Fundação SCP. Sua presença é raramente confirmada em registros oficiais — os que a conhecem, conhecem pelo silêncio que precede sua chegada.<br><br>
+        De aparência inconfundível — cabelos brancos caindo sobre um <strong>terno preto imaculado</strong>, camisa vermelha abotoada e uma <strong>boina vermelha</strong> que se tornou sua assinatura não-oficial — Vesper carrega consigo uma autoridade que não necessita de voz elevada para ser sentida.<br><br>
+        Registros anteriores à sua incorporação ao <span class="kw">GDA</span> encontram-se <span class="redacted">REDIGIDO POR ORDEM O5-█████████████</span>. Especulações sobre sua origem são desencorajadas a qualquer nível de clearance.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">FUNÇÃO OPERACIONAL</div>
+      <p class="sec-body">
+        Como agente do <span class="kw">Office of the Administrator</span>, Vesper atua como extensão direta da vontade do Administrador em campo e em sede. Suas responsabilidades incluem <strong>supervisão de contenção de alto risco</strong>, arbitragem de conflitos entre Comandantes de Site e execução de <span class="redacted">PROTOCOLO VERMELHO VESPER — NÍVEL OMEGA</span>.<br><br>
+        Ela possui autorização irrestrita para acessar qualquer instalação, arquivo ou ativo da Fundação. Ordens assinadas por <strong>Vesper</strong> carregam peso equivalente a diretivas do <span class="kw">Conselho O5</span> em contextos operacionais.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">PERFIL COMPORTAMENTAL</div>
+      <ul class="traits sec-body">
+        <li>Comunicação direta e econômica — raramente usa mais palavras do que o necessário.</li>
+        <li>Presença física marcante; observadores relatam uma sensação de <strong>peso atmosférico</strong> ao seu redor.</li>
+        <li>Lealdade total à missão da Fundação; motivações pessoais classificadas.</li>
+        <li>Histórico de campo: <span class="redacted">███ MISSÕES // ██ NEUTRALIZAÇÕES CONFIRMADAS</span></li>
+        <li>Nenhum registro de insubordinação. Nenhum registro de hesitação.</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">IDENTIFICAÇÃO VISUAL</div>
+      <p class="sec-body">
+        Vesper é reconhecida por seu <strong>cabelo branco longo e liso</strong>, frequentemente cobrindo parcialmente o rosto. Veste invariavelmente <strong>terno preto</strong> sobre <strong>camisa vermelha</strong>, com uma <span class="kw">boina vermelha</span> — o único elemento de cor visível no conjunto.<br><br>
+        A combinação cromática é consistente com protocolos visuais internos do <span class="kw">GDA</span>. Sua altura de <strong>187 cm</strong> a torna imediatamente identificável em qualquer ambiente operacional.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="sec-title">NOTAS ADICIONAIS</div>
+      <p class="sec-body">
+        Pessoal da Fundação que interage com Vesper é orientado a não questionar ordens verbais sem confirmação escrita — e a <strong>sempre obter confirmação escrita</strong>.<br><br>
+        Qualquer tentativa de acessar arquivos primários sobre <span class="kw">VESPER</span> sem clearance nível 6 resultará em <span class="redacted">REDAÇÃO AUTOMÁTICA E NOTIFICAÇÃO IMEDIATA DO GDA</span>.<br><br>
+        <em style="color:#440000;">"Ela não é uma ameaça à Fundação. Ela é o que acontece quando a Fundação precisa lembrar ao mundo que existe."<br>— Nota interna, autor desconhecido</em>
+      </p>
+    </div>
+
+    <footer class="site-footer">
+      <span>SCP FOUNDATION // DOCUMENTO CONTROLADO // NÍVEL 6</span>
+      <span id="footer-date"></span>
+    </footer>
+  </div>
+
+  <div id="vol-ctrl">
+    <span>♪ VOL</span>
+    <input type="range" id="vol-slider" min="10" max="100" value="70">
+    <span id="vol-pct">70%</span>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
