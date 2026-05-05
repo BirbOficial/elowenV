@@ -170,14 +170,12 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
 // AUDIO — toca no primeiro clique real
 // ══════════════════════════════════════════
 const ambientEl = document.getElementById('ambient');
-ambientEl.volume = 0.70;
+if (ambientEl) ambientEl.volume = 0.70;
 let audioStarted = false;
 
 function startAudio() {
-  if (audioStarted) return;
-  ambientEl.play()
-    .then(() => { audioStarted = true; })
-    .catch(() => {});
+  if (audioStarted || !ambientEl) return;
+  ambientEl.play().then(() => { audioStarted = true; }).catch(() => {});
 }
 
 ['click', 'keydown', 'touchstart', 'mousedown'].forEach(ev =>
@@ -305,6 +303,7 @@ function initVolControl() {
   const slider = document.getElementById('vol-slider');
   const pct    = document.getElementById('vol-pct');
   slider.addEventListener('input', () => {
+    if (!ambientEl) return;
     const v = Math.max(0.10, parseInt(slider.value) / 100);
     ambientEl.volume = v;
     pct.textContent  = slider.value + '%';
