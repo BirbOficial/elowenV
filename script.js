@@ -160,7 +160,27 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
 const ambientEl = document.getElementById('ambient');
 if (ambientEl) ambientEl.volume = 0.70;
 let audioStarted = false;
+// ══════════════════════════════════════════
+// HOVER SFX — hover.mp3
+// ══════════════════════════════════════════
+const hoverPool = [];
+for (let i = 0; i < 4; i++) {
+  const a = new Audio('hover.mp3');
+  a.volume = 0.35;
+  hoverPool.push(a);
+}
+let hoverPoolIdx = 0;
 
+function playHover() {
+  const snd = hoverPool[hoverPoolIdx % 4];
+  hoverPoolIdx++;
+  snd.currentTime = 0;
+  snd.play().catch(() => {});
+}
+
+function attachHover(el) {
+  el.addEventListener('mouseenter', playHover);
+}
 function startAudio() {
   if (audioStarted || !ambientEl) return;
   ambientEl.play()
@@ -298,7 +318,11 @@ function setFooterDate() {
 }
 
 function attachHoverCursor() {
-  document.querySelectorAll('.info-cell, #vol-slider, .login-btn, .redacted').forEach(el => {
+  document.querySelectorAll('.info-cell, #vol-slider, .login-btn, .redacted, button, input, a').forEach(el => {
+    el.addEventListener('mouseenter', () => { document.body.classList.add('cursor-hover'); playHover(); });
+    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
+  });
+}
     el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
     el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
   });
