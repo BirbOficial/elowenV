@@ -1,18 +1,32 @@
 // ══════════════════════════════════════════
-// CUSTOM CURSOR + TRAILS
+// CURSOR TRAIL — canvas overlay (performático, sem DOM spam)
 // ══════════════════════════════════════════
-const cursorDot  = document.getElementById('cursor-dot');
-const cursorRing = document.getElementById('cursor-ring');
+const trailCanvas = document.createElement('canvas');
+trailCanvas.id = 'trail-canvas';
+trailCanvas.style.cssText =
+  'position:fixed;inset:0;pointer-events:none;z-index:99997;';
+document.body.appendChild(trailCanvas);
+const trailCtx = trailCanvas.getContext('2d');
+
+function resizeTrail() {
+  trailCanvas.width  = window.innerWidth;
+  trailCanvas.height = window.innerHeight;
+}
+resizeTrail();
+window.addEventListener('resize', resizeTrail);
+
+// Pontos do rastro primário (dot) e secundário (ring)
+const dotPoints  = [];  // rastro do cursor principal
+const ringPoints = [];  // rastro do ring
+
+const DOT_MAX  = 18;
+const RING_MAX = 12;
 
 let mouseX = 0, mouseY = 0;
-let ringX = 0, ringY = 0;
+let ringX  = 0, ringY  = 0;
 
-// Trail arrays
-const dotTrail  = [];  // primary dot trail
-const ringTrail = [];  // ring trail
-
-const DOT_TRAIL_LEN  = 12;
-const RING_TRAIL_LEN = 8;
+const cursorDot  = document.getElementById('cursor-dot');
+const cursorRing = document.getElementById('cursor-ring');
 
 document.addEventListener('mousemove', e => {
   mouseX = e.clientX;
@@ -20,58 +34,61 @@ document.addEventListener('mousemove', e => {
   cursorDot.style.left = mouseX + 'px';
   cursorDot.style.top  = mouseY + 'px';
 
-  // Dot trail
-  dotTrail.push({ x: mouseX, y: mouseY, life: 1 });
-  if (dotTrail.length > DOT_TRAIL_LEN) dotTrail.shift();
+  dotPoints.push({ x: mouseX, y: mouseY });
+  if (dotPoints.length > DOT_MAX) dotPoints.shift();
 });
 
-// Spawn trail particles for the dot cursor
-function spawnDotTrailParticle(x, y, alpha) {
-  const el = document.createElement('div');
-  el.className = 'cursor-trail-dot';
-  el.style.left = x + 'px';
-  el.style.top  = y + 'px';
-  el.style.opacity = alpha;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 180);
-}
-
-// Ring smooth follow — faster now (0.22 instead of 0.12)
-let lastRingX = 0, lastRingY = 0;
+// Ring follow — mais rápido (0.20)
 (function animRing() {
-  ringX += (mouseX - ringX) * 0.22;
-  ringY += (mouseY - ringY) * 0.22;
+  ringX += (mouseX - ringX) * 0.20;
+  ringY += (mouseY - ringY) * 0.20;
   cursorRing.style.left = ringX + 'px';
   cursorRing.style.top  = ringY + 'px';
 
-  // Ring trail
-  if (Math.abs(ringX - lastRingX) > 1.5 || Math.abs(ringY - lastRingY) > 1.5) {
-    ringTrail.push({ x: ringX, y: ringY });
-    if (ringTrail.length > RING_TRAIL_LEN) ringTrail.shift();
-    lastRingX = ringX; lastRingY = ringY;
-
-    ringTrail.forEach((pt, i) => {
-      const alpha = (i / ringTrail.length) * 0.55;
-      const el = document.createElement('div');
-      el.className = 'cursor-trail-ring';
-      el.style.left    = pt.x + 'px';
-      el.style.top     = pt.y + 'px';
-      el.style.opacity = alpha;
-      document.body.appendChild(el);
-      setTimeout(() => el.remove(), 120);
-    });
-  }
+  ringPoints.push({ x: ringX, y: ringY });
+  if (ringPoints.length > RING_MAX) ringPoints.shift();
 
   requestAnimationFrame(animRing);
 })();
 
-// Dot trail tick
-setInterval(() => {
-  dotTrail.forEach((pt, i) => {
-    const alpha = (i / dotTrail.length) * 0.7;
-    spawnDotTrailParticle(pt.x, pt.y, alpha);
-  });
-}, 30);
+// Desenha rastros no canvas a cada frame
+(function drawTrails() {
+  trailCtx.clearRect(0, 0, trailCanvas.width, trailCanvas.height);
+
+  // Rastro primário — linha contínua fina com brilho vermelho
+  if (dotPoints.length > 1) {
+    for (let i = 1; i < dotPoints.length; i++) {
+      const t = i / dotPoints.length;
+      const alpha = t * 0.85;
+      const width = t * 2.5;
+      trailCtx.beginPath();
+      trailCtx.moveTo(dotPoints[i - 1].x, dotPoints[i - 1].y);
+      trailCtx.lineTo(dotPoints[i].x, dotPoints[i].y);
+      trailCtx.strokeStyle = `rgba(220,0,0,${alpha})`;
+      trailCtx.lineWidth = width;
+      trailCtx.lineCap = 'round';
+      trailCtx.shadowColor = '#cc0000';
+      trailCtx.shadowBlur = 6;
+      trailCtx.stroke();
+    }
+  }
+
+  // Rastro ring — pontos pequenos neon
+  trailCtx.shadowBlur = 0;
+  for (let i = 0; i < ringPoints.length; i++) {
+    const t = i / ringPoints.length;
+    const alpha = t * 0.5;
+    const r = t * 3;
+    trailCtx.beginPath();
+    trailCtx.arc(ringPoints[i].x, ringPoints[i].y, r, 0, Math.PI * 2);
+    trailCtx.fillStyle = `rgba(255,60,60,${alpha})`;
+    trailCtx.shadowColor = '#ff3030';
+    trailCtx.shadowBlur = 8;
+    trailCtx.fill();
+  }
+
+  requestAnimationFrame(drawTrails);
+})();
 
 // Hover expand
 document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el => {
@@ -84,7 +101,7 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
 // ══════════════════════════════════════════
 (function () {
   const canvas = document.getElementById('tron-canvas');
-  const ctx = canvas.getContext('2d');
+  const ctx    = canvas.getContext('2d');
   let W, H;
   function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
   resize();
@@ -97,10 +114,10 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
     const side = Math.floor(Math.random() * 4);
     let x, y, dx, dy;
     const spd = 0.7 + Math.random() * 1.4;
-    if (side === 0)      { x = Math.random() * ZONE; y = Math.random() * H; dx = spd; dy = 0; }
-    else if (side === 1) { x = W - Math.random() * ZONE; y = Math.random() * H; dx = -spd; dy = 0; }
-    else if (side === 2) { x = Math.random() * W; y = Math.random() * ZONE; dx = 0; dy = spd; }
-    else                 { x = Math.random() * W; y = H - Math.random() * ZONE; dx = 0; dy = -spd; }
+    if (side === 0)      { x = Math.random() * ZONE;      y = Math.random() * H;    dx = spd;  dy = 0; }
+    else if (side === 1) { x = W - Math.random() * ZONE;  y = Math.random() * H;    dx = -spd; dy = 0; }
+    else if (side === 2) { x = Math.random() * W;          y = Math.random() * ZONE; dx = 0;    dy = spd; }
+    else                 { x = Math.random() * W;          y = H - Math.random() * ZONE; dx = 0; dy = -spd; }
     return {
       x, y, dx, dy,
       trail: [], maxTrail: 35 + Math.floor(Math.random() * 55),
@@ -129,10 +146,10 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
       for (let j = 0; j < p.trail.length - 1; j++) {
         const a = (j / p.trail.length) * p.life * 0.75;
         ctx.beginPath();
-        ctx.moveTo(p.trail[j].x, p.trail[j].y);
+        ctx.moveTo(p.trail[j].x,     p.trail[j].y);
         ctx.lineTo(p.trail[j + 1].x, p.trail[j + 1].y);
         ctx.strokeStyle = `rgba(204,0,0,${a})`;
-        ctx.lineWidth = p.size * (j / p.trail.length);
+        ctx.lineWidth   = p.size * (j / p.trail.length);
         ctx.stroke();
       }
       ctx.beginPath();
@@ -150,7 +167,7 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
 })();
 
 // ══════════════════════════════════════════
-// AUDIO — Web Audio API unlock trick
+// AUDIO — toca no primeiro clique real
 // ══════════════════════════════════════════
 const ambientEl = document.getElementById('ambient');
 ambientEl.volume = 0.70;
@@ -158,31 +175,24 @@ let audioStarted = false;
 
 function startAudio() {
   if (audioStarted) return;
-  // Resume AudioContext if suspended (Chrome policy)
-  if (window._audioCtx && window._audioCtx.state === 'suspended') {
-    window._audioCtx.resume();
-  }
   ambientEl.play()
     .then(() => { audioStarted = true; })
     .catch(() => {});
 }
 
-// Create AudioContext on load to warm it up
-window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
 ['click', 'keydown', 'touchstart', 'mousedown'].forEach(ev =>
-  document.addEventListener(ev, startAudio)
+  document.addEventListener(ev, startAudio, { once: false })
 );
 
 // ══════════════════════════════════════════
 // LOGIN
 // ══════════════════════════════════════════
 const PASS = 'VVVVVE!5';
-const loginBtn  = document.getElementById('login-btn');
-const loginPass = document.getElementById('login-pass');
 
-loginBtn.addEventListener('click', tryLogin);
-loginPass.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+document.getElementById('login-btn').addEventListener('click', tryLogin);
+document.getElementById('login-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tryLogin();
+});
 
 function tryLogin() {
   startAudio();
@@ -191,74 +201,75 @@ function tryLogin() {
   const err  = document.getElementById('login-error');
 
   if (!user) {
-    err.textContent = '⚠ IDENTIFICADOR REQUERIDO';
+    err.textContent  = '⚠ IDENTIFICADOR REQUERIDO';
     err.style.opacity = 1;
     return;
   }
 
   if (pass !== PASS) {
-    err.textContent = '⛔ ACESSO NEGADO — CREDENCIAIS INVÁLIDAS';
+    err.textContent  = '⛔ ACESSO NEGADO — CREDENCIAIS INVÁLIDAS';
     err.style.opacity = 1;
-    showFractalError();   // wrong password — locked screen
+    showFractalError();
     return;
   }
 
-  err.textContent = '';
+  err.textContent  = '';
   err.style.opacity = 0;
-  acceptLogin();          // correct password
+  acceptLogin();
 }
 
-// ── Wrong password: show fractal, lock page (F5 to escape)
+// ── Senha ERRADA — fractal de erro, tela travada (F5 para sair)
 function showFractalError() {
   const overlay = document.getElementById('fractal-overlay');
   const popup   = document.getElementById('fractal-popup');
   const footer  = document.getElementById('fractal-footer');
-  footer.textContent = 'ACESSO NEGADO — REGISTRANDO TENTATIVA // PRESSIONE F5 PARA TENTAR NOVAMENTE';
+
+  footer.textContent = 'ACESSO NEGADO — REGISTRANDO TENTATIVA // F5 PARA TENTAR NOVAMENTE';
 
   overlay.style.display = 'block';
   popup.style.display   = 'block';
-  // Force reflow for transition
-  popup.getBoundingClientRect();
-  requestAnimationFrame(() => popup.classList.add('visible'));
 
-  // Block all login inputs
+  // força reflow antes de adicionar classe de transição
+  void popup.offsetWidth;
+  popup.classList.add('visible');
+
+  // Trava inputs
   document.getElementById('login-user').disabled = true;
   document.getElementById('login-pass').disabled = true;
-  loginBtn.disabled = true;
-  loginBtn.style.opacity = '0.3';
+  document.getElementById('login-btn').disabled  = true;
+  document.getElementById('login-btn').style.opacity = '0.3';
 }
 
-// ── Correct password: fractal success, then launch site
+// ── Senha CORRETA — fractal de sucesso, depois lança o site
 function acceptLogin() {
+  // Esconde tela de login imediatamente
   document.getElementById('login-screen').style.display = 'none';
 
   const overlay = document.getElementById('fractal-overlay');
   const popup   = document.getElementById('fractal-popup');
   const footer  = document.getElementById('fractal-footer');
+
   footer.textContent = 'IDENTIDADE CONFIRMADA — INICIANDO SESSÃO SEGURA';
 
   overlay.style.display = 'block';
   popup.style.display   = 'block';
-  popup.getBoundingClientRect();
-  requestAnimationFrame(() => popup.classList.add('visible'));
 
-  // After 4s, fade out fractal, then launch site
+  void popup.offsetWidth;
+  popup.classList.add('visible');
+
+  // Após 4s, fade-out e lança o site
   setTimeout(() => {
-    hideFractalPopup(() => {
+    popup.classList.remove('visible');
+    overlay.style.transition = 'opacity 0.5s ease';
+    overlay.style.opacity    = '0';
+    setTimeout(() => {
+      overlay.style.display   = 'none';
+      overlay.style.opacity   = '';
+      overlay.style.transition = '';
+      popup.style.display     = 'none';
       launchSite();
-    });
+    }, 500);
   }, 4000);
-}
-
-function hideFractalPopup(cb) {
-  const overlay = document.getElementById('fractal-overlay');
-  const popup   = document.getElementById('fractal-popup');
-  popup.classList.remove('visible');
-  setTimeout(() => {
-    overlay.style.display = 'none';
-    popup.style.display   = 'none';
-    if (cb) cb();
-  }, 500);
 }
 
 // ══════════════════════════════════════════
@@ -296,7 +307,7 @@ function initVolControl() {
   slider.addEventListener('input', () => {
     const v = Math.max(0.10, parseInt(slider.value) / 100);
     ambientEl.volume = v;
-    pct.textContent = slider.value + '%';
+    pct.textContent  = slider.value + '%';
   });
 }
 
@@ -314,20 +325,22 @@ function attachHoverCursor() {
 }
 
 // ══════════════════════════════════════════
-// GIF
+// GIF — scroll-controlled
 // ══════════════════════════════════════════
 let gifFrames = [];
 let gifGlobalWidth = 720, gifGlobalHeight = 720;
 let currentGifFrame = -1;
+
 const offscreenCanvas = document.createElement('canvas');
 const offCtx = offscreenCanvas.getContext('2d');
 const compositeCanvas = document.createElement('canvas');
-compositeCanvas.width = 720; compositeCanvas.height = 720;
+compositeCanvas.width  = 720;
+compositeCanvas.height = 720;
 const compositeCtx = compositeCanvas.getContext('2d');
 
 function loadGIF() {
-  const canvas = document.getElementById('char-canvas');
-  const ctx    = canvas.getContext('2d');
+  const canvas   = document.getElementById('char-canvas');
+  const ctx      = canvas.getContext('2d');
   const gifImage = new Image();
   gifImage.crossOrigin = 'anonymous';
   gifImage.onload = () => {
@@ -341,17 +354,17 @@ function loadGIF() {
 
 function tryGifuct() {
   const s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js';
-  s.onload = fetchAndParseGIF;
+  s.src    = 'https://cdn.jsdelivr.net/npm/gifuct-js@2.1.2/dist/gifuct-js.min.js';
+  s.onload  = fetchAndParseGIF;
   s.onerror = () => console.warn('gifuct-js CDN failed');
   document.head.appendChild(s);
 }
 
 function fetchAndParseGIF() {
   fetch('character.gif')
-    .then(r => { if (!r.ok) throw new Error('GIF fetch failed'); return r.arrayBuffer(); })
+    .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.arrayBuffer(); })
     .then(buf => {
-      const gif = window.parseGIF(buf);
+      const gif    = window.parseGIF(buf);
       gifGlobalWidth  = gif.lsd.width;
       gifGlobalHeight = gif.lsd.height;
       const frames = window.decompressFrames(gif, true);
@@ -380,8 +393,11 @@ function renderGifFrame(index) {
   patchCanvas.height = frame.dims.height;
   patchCanvas.getContext('2d').putImageData(imageData, 0, 0);
   const scaleX = 720 / gifGlobalWidth, scaleY = 720 / gifGlobalHeight;
-  compositeCtx.drawImage(patchCanvas, frame.dims.left * scaleX, frame.dims.top * scaleY,
-    frame.dims.width * scaleX, frame.dims.height * scaleY);
+  compositeCtx.drawImage(
+    patchCanvas,
+    frame.dims.left  * scaleX, frame.dims.top * scaleY,
+    frame.dims.width * scaleX, frame.dims.height * scaleY
+  );
   ctx.clearRect(0, 0, 720, 720);
   ctx.drawImage(compositeCanvas, 0, 0);
 }
