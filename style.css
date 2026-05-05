@@ -439,3 +439,31 @@ body::after {
   );
   pointer-events: none; z-index: 9998;
 }
+
+/* ── CURSOR TRAILS ── */
+.cursor-trail-dot {
+  position: fixed;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--red);
+  pointer-events: none;
+  z-index: 99990;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 6px var(--red), 0 0 12px var(--red-glow);
+  transition: opacity 0.18s ease;
+}
+
+.cursor-trail-ring {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1px solid #ff4444;
+  pointer-events: none;
+  z-index: 99989;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
+  transition: opacity 0.12s ease;
+}
