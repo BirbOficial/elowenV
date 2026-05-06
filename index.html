@@ -165,12 +165,6 @@ const CFG = {
   command: { text: 'access Elowen Vesper Registry SC6', speed_ms: 60, speed_jitter: 0.6, post_delay_ms: 1000 },
   crt_off: { anim_ms: 500, dark_pause_ms: 480 },
 
-  // ── MÚLTIPLAS CAIXAS DE DIÁLOGO ────────────────────────────────────────
-  // intro_sound : toca ao abrir a caixa  → 'hm.mp3' | 'haha.mp3' | 'sigh.mp3' | null
-  // type_sound  : toca por caractere     → 'speech.mp3' | 'keypress.mp3' | null
-  // black_ms    : tela preta entre esta caixa e a próxima (0 = sem pausa escura)
-  // pause_ms    : pausa simples (sem tela preta) se black_ms for 0
-  // speed_ms (por linha): velocidade em ms/char para aquela linha. omitir = usa type_speed_ms da caixa
   dialogs: [
     {
       title: 'SYSTEM MESSAGE',
@@ -183,7 +177,6 @@ const CFG = {
         { text: '*Naughty naughty.*',        delay_ms: 600 },
         { text: "You're interested in me,",  delay_ms: 60  },
         { text: '* huh?*',                   delay_ms: 300 },
-
       ],
       type_speed_ms: 62, type_jitter: 0.45, linger_ms: 2800, fade_ms: 480,
       pause_ms: 0, black_ms: 1100,
@@ -425,10 +418,7 @@ function showOneDialog(D, onDone) {
     node.appendChild(cur);
     const chars=[]; segs.forEach(({text,italic})=>{ for(const ch of text) chars.push({ch,italic}); });
     let charIdx=0, curSpan=null, curItalic=null;
-
-    // ── velocidade por linha: speed_ms na linha sobrescreve type_speed_ms da caixa
     const lineSpeed = D.lines[lineIdx].speed_ms ?? D.type_speed_ms;
-
     function typeChar() {
       if (charIdx>=chars.length){done();return;}
       const {ch,italic}=chars[charIdx++];
@@ -467,7 +457,31 @@ function showRedirect() {
   barWrap.appendChild(bar); rdiv.appendChild(txt); rdiv.appendChild(barWrap); rdiv.appendChild(pct);
   void bar.offsetWidth; setTimeout(()=>bar.style.width='100%',30);
   let pctVal=0; const pctInterval=setInterval(()=>{ pctVal=Math.min(pctVal+1,100); pct.textContent=pctVal+'%'; if(pctVal>=100) clearInterval(pctInterval); },CFG.redirect.bar_fill_ms/100);
-  setTimeout(()=>{ document.body.style.transition=`opacity ${CFG.redirect.fade_out_ms}ms ease`; document.body.style.opacity='0'; setTimeout(()=>window.location.href=CFG.redirect.go_to,CFG.redirect.fade_out_ms+50); },CFG.redirect.bar_fill_ms+200);
+
+  // Quando a barra termina: toca braam.mp3, faz fade out, redireciona ao fim do som
+  setTimeout(()=>{
+    const braam = new Audio('braam.mp3');
+    braam.volume = 1.0;
+
+    // Fade out da página começa junto com o braam
+    document.body.style.transition = `opacity ${CFG.redirect.fade_out_ms}ms ease`;
+    document.body.style.opacity = '0';
+
+    // Redireciona quando o braam terminar naturalmente
+    braam.addEventListener('ended', () => {
+      window.location.href = CFG.redirect.go_to;
+    });
+
+    // Fallback: se o braam falhar ou for bloqueado, redireciona pelo timer original
+    braam.addEventListener('error', () => {
+      setTimeout(() => window.location.href = CFG.redirect.go_to, CFG.redirect.fade_out_ms + 50);
+    });
+
+    braam.play().catch(() => {
+      setTimeout(() => window.location.href = CFG.redirect.go_to, CFG.redirect.fade_out_ms + 50);
+    });
+
+  }, CFG.redirect.bar_fill_ms + 200);
 }
 </script>
 </body>
