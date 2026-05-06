@@ -381,62 +381,69 @@ const CFG = {
   },
 
   // ── MÚLTIPLAS CAIXAS DE DIÁLOGO ────────────────────────────────────────
-  // Cada objeto em `dialogs` é uma caixa separada, exibida em sequência.
-  // intro_sound: arquivo mp3 tocado ao abrir a caixa. null = sem som.
-  //   Sons disponíveis: 'hm.mp3', 'haha.mp3', null
-  // type_sound: arquivo mp3 tocado por caractere. 'speech.mp3', 'keypress.mp3', null
+  // intro_sound : toca ao abrir a caixa  → 'hm.mp3' | 'haha.mp3' | 'sigh.mp3' | null
+  // type_sound  : toca por caractere     → 'speech.mp3' | 'keypress.mp3' | null
+  // black_ms    : tela preta entre esta caixa e a próxima (0 = sem pausa escura)
+  // pause_ms    : pausa simples (sem tela preta) se black_ms for 0
   dialogs: [
     {
-      title:              'SYSTEM MESSAGE',
-      title_font_size:    '9px',
-      title_font_family:  '"Share Tech Mono", monospace',
-      body_font_size:     '17px',
-      body_font_family:   '"Italianno", cursive',
-      body_line_height:   '2.0',
-      width:              '520px',
-      bottom_offset:      '13%',
-      intro_sound:        'hm.mp3',
-      intro_sound_volume: 0.7,
-      type_sound:         'speech.mp3',
-      type_sound_volume:  0.35,
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: 'hm.mp3', intro_sound_volume: 0.7,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
       lines: [
-        { text: 'Hm?',                                delay_ms: 300  },
-        { text: '*Naughty naughty*.',                                delay_ms: 300  },
-        { text: "You know I know you shouldn't be accessing this,",  delay_ms: 500  },
-        { text: "*don't you*?",                                      delay_ms: 400  },
+        { text: 'Hm.',          delay_ms: 600 },
+        { text: 'You found it.', delay_ms: 800 },
+        { text: '*Clever*.',    delay_ms: 400 },
       ],
-      type_speed_ms: 42,
-      type_jitter:   0.45,
-      linger_ms:     2600,
-      fade_ms:       480,
-      pause_ms:      300,
+      type_speed_ms: 62, type_jitter: 0.45, linger_ms: 2800, fade_ms: 480,
+      pause_ms: 0, black_ms: 1800,
     },
-
-     {
-       title: 'SYSTEM MESSAGE',
-       title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
-       body_font_size: '17px', body_font_family: '"Pinyon Script", cursive',
-       body_line_height: '2.0', width: '520px', bottom_offset: '13%',
-       intro_sound: 'haha.mp3', intro_sound_volume: 0.6,
-       type_sound: 'speech.mp3', type_sound_volume: 0.35,
-       lines: [
-        { text: "That's okay,",                                delay_ms: 100  },
-        { text: " though.",  delay_ms: 500  },
-        { text: "*don't you*?",                                      delay_ms: 400  },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: 'sigh.mp3', intro_sound_volume: 0.6,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
+      lines: [
+        { text: "Don't flatter yourself.", delay_ms: 100 },
+        { text: "I left the door open.",   delay_ms: 600 },
       ],
-       type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2000, fade_ms: 400, pause_ms: 300,
-     },
-    // Adicione mais caixas aqui. Exemplo:
-    // {
-    //   title: 'SYSTEM MESSAGE',
-    //   title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
-    //   body_font_size: '17px', body_font_family: '"Pinyon Script", cursive',
-    //   body_line_height: '2.0', width: '520px', bottom_offset: '13%',
-    //   intro_sound: 'haha.mp3', intro_sound_volume: 0.6,
-    //   type_sound: 'speech.mp3', type_sound_volume: 0.35,
-    //   lines: [ { text: 'Run along now.', delay_ms: 200 } ],
-    //   type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2000, fade_ms: 400, pause_ms: 300,
-    // },
+      type_speed_ms: 55, type_jitter: 0.4, linger_ms: 2200, fade_ms: 400,
+      pause_ms: 0, black_ms: 2200,
+    },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: 'haha.mp3', intro_sound_volume: 0.6,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
+      lines: [
+        { text: 'Ha.',                          delay_ms: 50  },
+        { text: 'Look at you, reading about me.', delay_ms: 700 },
+        { text: '*Adorable*.',                  delay_ms: 500 },
+      ],
+      type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2400, fade_ms: 400,
+      pause_ms: 0, black_ms: 1500,
+    },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: null, intro_sound_volume: 0,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
+      lines: [
+        { text: 'Now run along.',                             delay_ms: 200 },
+        { text: "Before I change my mind about letting you.", delay_ms: 600 },
+      ],
+      type_speed_ms: 58, type_jitter: 0.38, linger_ms: 3200, fade_ms: 600,
+      pause_ms: 0, black_ms: 0,
+    },
   ],
 
   redirect: {
@@ -792,8 +799,15 @@ function onCRTOffDone() {
 // ── DIALOG CHAIN ──────────────────────────────────────────────────────────
 function showDialogChain(idx) {
   if (idx >= CFG.dialogs.length) { showRedirect(); return; }
-  showOneDialog(CFG.dialogs[idx], () => {
-    setTimeout(() => showDialogChain(idx + 1), CFG.dialogs[idx].pause_ms ?? 300);
+  const D = CFG.dialogs[idx];
+  showOneDialog(D, () => {
+    const blackMs = D.black_ms ?? 0;
+    if (blackMs > 0) {
+      // Box is already faded out — screen is black. Just wait, then show next.
+      setTimeout(() => showDialogChain(idx + 1), blackMs);
+    } else {
+      setTimeout(() => showDialogChain(idx + 1), D.pause_ms ?? 300);
+    }
   });
 }
 
@@ -908,9 +922,10 @@ function showOneDialog(D, onDone) {
   `;
 
   function typeLine(lineIdx, done) {
-    const raw  = D.lines[lineIdx].text;
-    const segs = parseSegments(raw);
-    const node = lineNodes[lineIdx];
+    const raw      = D.lines[lineIdx].text;
+    const lineSpeed = D.lines[lineIdx].speed ?? D.type_speed_ms; // per-line override
+    const segs     = parseSegments(raw);
+    const node     = lineNodes[lineIdx];
 
     if (lineIdx > 0) node.appendChild(document.createTextNode(' '));
     node.appendChild(cur);
@@ -941,7 +956,7 @@ function showOneDialog(D, onDone) {
       if (D.type_sound) playPooled(D.type_sound, D.type_sound_volume);
 
       const jitter = 1 + (Math.random()-0.5)*D.type_jitter;
-      setTimeout(typeChar, D.type_speed_ms * jitter);
+      setTimeout(typeChar, lineSpeed * jitter);
     }
     typeChar();
   }
