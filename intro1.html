@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="icon" type="image/gif" href="terminallogo.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SCiPNET TERMINAL</title>
@@ -380,69 +381,33 @@ const CFG = {
     dark_pause_ms: 480,
   },
 
-  // ── MÚLTIPLAS CAIXAS DE DIÁLOGO ────────────────────────────────────────
-  // Cada objeto em `dialogs` é uma caixa separada, exibida em sequência.
-  // intro_sound: arquivo mp3 tocado ao abrir a caixa. null = sem som.
-  //   Sons disponíveis: 'hm.mp3', 'haha.mp3', null
-  // type_sound: arquivo mp3 tocado por caractere. 'speech.mp3', 'keypress.mp3', null
-  dialogs: [
-    {
-      title:              'SYSTEM MESSAGE',
-      title_font_size:    '9px',
-      title_font_family:  '"Share Tech Mono", monospace',
-      body_font_size:     '17px',
-      body_font_family:   '"Italianno", cursive',
-      body_line_height:   '2.0',
-      width:              '520px',
-      bottom_offset:      '13%',
-      intro_sound:        'hm.mp3',
-      intro_sound_volume: 0.7,
-      type_sound:         'speech.mp3',
-      type_sound_volume:  0.35,
-      lines: [
-        { text: 'Hm?',                                delay_ms: 300  },
-        { text: '*Naughty naughty*.',                                delay_ms: 300  },
-        { text: "You know I know you shouldn't be accessing this,",  delay_ms: 500  },
-        { text: "*don't you*?",                                      delay_ms: 400  },
-      ],
-      type_speed_ms: 42,
-      type_jitter:   0.45,
-      linger_ms:     2600,
-      fade_ms:       480,
-      pause_ms:      300,
-    },
+  dialog: {
+    title:             'SYSTEM MESSAGE',
+    title_font_size:   '9px',
+    title_font_family: '"Share Tech Mono", monospace',
+    body_font_size:    '17px',
+    body_font_family:  '"Pinyon Script", cursive',
+    body_line_height:  '2.0',
+    width:             '520px',
+    bottom_offset:     '13%',
 
-     {
-       title: 'SYSTEM MESSAGE',
-       title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
-       body_font_size: '17px', body_font_family: '"Pinyon Script", cursive',
-       body_line_height: '2.0', width: '520px', bottom_offset: '13%',
-       intro_sound: 'haha.mp3', intro_sound_volume: 0.6,
-       type_sound: 'speech.mp3', type_sound_volume: 0.35,
-       lines: [
-        { text: "That's okay,",                                delay_ms: 100  },
-        { text: " though.",  delay_ms: 500  },
-        { text: "*don't you*?",                                      delay_ms: 400  },
-      ],
-       type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2000, fade_ms: 400, pause_ms: 300,
-     },
-    // Adicione mais caixas aqui. Exemplo:
-    // {
-    //   title: 'SYSTEM MESSAGE',
-    //   title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
-    //   body_font_size: '17px', body_font_family: '"Pinyon Script", cursive',
-    //   body_line_height: '2.0', width: '520px', bottom_offset: '13%',
-    //   intro_sound: 'haha.mp3', intro_sound_volume: 0.6,
-    //   type_sound: 'speech.mp3', type_sound_volume: 0.35,
-    //   lines: [ { text: 'Run along now.', delay_ms: 200 } ],
-    //   type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2000, fade_ms: 400, pause_ms: 300,
-    // },
-  ],
+    lines: [
+      { text: '*Naughty naughty*.',                                delay_ms: 300  },
+      { text: "You know I know you shouldn't be accessing this,",  delay_ms: 500  },
+      { text: "*don't you*?",                                      delay_ms: 400  },
+    ],
+
+    type_speed_ms:  42,
+    type_jitter:    0.45,
+    type_key_sound: true,
+    linger_ms:      2600,
+    fade_ms:        480,
+  },
 
   redirect: {
     text:        'REDIRECIONANDO PARA AUTENTICAÇÃO SEGURA...',
     bar_fill_ms: 2400,
-    go_to:       'index.html',
+    go_to:       'main.html',
     fade_out_ms: 700,
   },
 };
@@ -474,29 +439,10 @@ let keyPoolIdx = 0;
 function playKey() {
   const a = keyAudioPool[keyPoolIdx % KEY_POOL_SIZE];
   keyPoolIdx++;
-  try { a.currentTime = 0; a.play().catch(() => {}); } catch(e) {}
-}
-
-// Generic pooled sound player — creates a pool on first use per filename
-const soundPools = {};
-function playPooled(file, volume) {
-  if (!file) return;
-  if (!soundPools[file]) {
-    soundPools[file] = [];
-    for (let i = 0; i < 6; i++) {
-      const a = new Audio(file);
-      a.volume = volume ?? 0.5;
-      a.load();
-      soundPools[file].push(a);
-    }
-    soundPools[file]._idx = 0;
-  }
-  const pool = soundPools[file];
-  const a = pool[pool._idx % pool.length];
-  pool._idx++;
-  // Update volume in case it differs per dialog
-  a.volume = volume ?? 0.5;
-  try { a.currentTime = 0; a.play().catch(() => {}); } catch(e) {}
+  try {
+    a.currentTime = 0;
+    a.play().catch(() => {});
+  } catch(e) {}
 }
 
 function playCRTOn() {
@@ -786,21 +732,13 @@ function runCRTOff() {
 
 function onCRTOffDone() {
   termEl.style.display = 'none';
-  setTimeout(() => showDialogChain(0), CFG.crt_off.dark_pause_ms);
+  setTimeout(showDialog, CFG.crt_off.dark_pause_ms);
 }
 
-// ── DIALOG CHAIN ──────────────────────────────────────────────────────────
-function showDialogChain(idx) {
-  if (idx >= CFG.dialogs.length) { showRedirect(); return; }
-  showOneDialog(CFG.dialogs[idx], () => {
-    setTimeout(() => showDialogChain(idx + 1), CFG.dialogs[idx].pause_ms ?? 300);
-  });
-}
-
-function showOneDialog(D, onDone) {
+// ── DIALOG ────────────────────────────────────────────────────────────────
+function showDialog() {
+  const D   = CFG.dialog;
   const box = document.getElementById('dialog');
-  // Reset box for reuse
-  box.innerHTML = '';
 
   box.style.cssText = `
     display: block;
@@ -836,20 +774,24 @@ function showOneDialog(D, onDone) {
     align-items: center;
     gap: 8px;
   `;
+  // Blinking dot in header
   const dot = document.createElement('span');
   dot.style.cssText = `
     width:5px;height:5px;border-radius:50%;
-    background:#000;display:inline-block;
-    animation:blink-cur 1s step-end infinite;
+    background:#000;
+    display:inline-block;
+    animation: blink-cur 1s step-end infinite;
   `;
   hdr.prepend(dot);
 
+  // Decorative top border line
   const topLine = document.createElement('div');
   topLine.style.cssText = `
-    height:1px;
-    background:linear-gradient(to right, transparent, ${col('dialog_border')}88, transparent);
+    height: 1px;
+    background: linear-gradient(to right, transparent, ${col('dialog_border')}88, transparent);
   `;
 
+  // Body
   const body = document.createElement('div');
   body.style.cssText = `
     padding: 22px 26px 24px;
@@ -865,13 +807,6 @@ function showOneDialog(D, onDone) {
   box.appendChild(hdr);
   box.appendChild(topLine);
   box.appendChild(body);
-
-  // Play intro sound then fade in
-  if (D.intro_sound) {
-    const introAudio = new Audio(D.intro_sound);
-    introAudio.volume = D.intro_sound_volume ?? 0.7;
-    introAudio.play().catch(() => {});
-  }
 
   void box.offsetWidth;
   box.style.opacity   = '1';
@@ -936,10 +871,7 @@ function showOneDialog(D, onDone) {
         curItalic = italic;
       }
       curSpan.textContent += ch;
-
-      // Play per-character sound (speech.mp3 or whatever is set)
-      if (D.type_sound) playPooled(D.type_sound, D.type_sound_volume);
-
+      if (D.type_key_sound) playKey();
       const jitter = 1 + (Math.random()-0.5)*D.type_jitter;
       setTimeout(typeChar, D.type_speed_ms * jitter);
     }
@@ -948,12 +880,11 @@ function showOneDialog(D, onDone) {
 
   function chainLines(idx) {
     if (idx >= D.lines.length) {
-      cur.remove();
       setTimeout(() => {
         box.style.transition = `opacity ${D.fade_ms}ms ease, transform ${D.fade_ms}ms ease`;
         box.style.opacity    = '0';
         box.style.transform  = 'translateX(-50%) translateY(16px)';
-        setTimeout(onDone, D.fade_ms);
+        setTimeout(showRedirect, D.fade_ms);
       }, D.linger_ms);
       return;
     }
