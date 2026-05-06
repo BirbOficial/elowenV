@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCiPNET TERMINAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pinyon+Script&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; overflow:hidden; background:#000; cursor:none; }
+
+/* ── CUSTOM CURSOR ── */
+#cursor {
+  position: fixed;
+  width: 18px; height: 18px;
+  border: 1px solid #e80400;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: transform 0.08s ease, opacity 0.3s;
+  box-shadow: 0 0 6px #e8040088;
+}
+#cursor::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 3px; height: 3px;
+  background: #e80400;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ── SCANLINES (top layer) ── */
+#scanlines {
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+  animation: flicker-scan 8s infinite;
+}
+@keyframes flicker-scan {
+  0%,96%,100% { opacity:1 }
+  97% { opacity:0.82 }
+  98% { opacity:0.95 }
+  99% { opacity:0.78 }
+}
+
+/* ── VIGNETTE ── */
+#vignette {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse at center,
+    transparent 40%, rgba(0,0,0,0.72) 100%);
+  pointer-events: none;
+  z-index: 9997;
+}
+
+/* ── HORIZONTAL GLITCH LINE ── */
+#glitch-line {
+  position: fixed;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, #e8040066, transparent);
+  pointer-events: none;
+  z-index: 9996;
+  opacity: 0;
+  top: 30%;
+  animation: glitch-travel 12s infinite 4s;
+}
+@keyframes glitch-travel {
+  0%   { top:10%; opacity:0; }
+  5%   { opacity:0.7; }
+  95%  { top:90%; opacity:0.4; }
+  100% { top:90%; opacity:0; }
+}
+
+/* ── CORNER DECORATIONS ── */
+.corner {
+  position: fixed;
+  width: 40px; height: 40px;
+  pointer-events: none;
+  z-index: 9995;
+  opacity: 0.5;
+}
+.corner--tl { top:16px; left:16px; border-top:1px solid #e80400; border-left:1px solid #e80400; }
+.corner--tr { top:16px; right:16px; border-top:1px solid #e80400; border-right:1px solid #e80400; }
+.corner--bl { bottom:16px; left:16px; border-bottom:1px solid #e80400; border-left:1px solid #e80400; }
+.corner--br { bottom:16px; right:16px; border-bottom:1px solid #e80400; border-right:1px solid #e80400; }
+
+/* ── STATUS BAR ── */
+#status-bar {
+  position: fixed;
+  bottom: 16px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  color: #4a0000;
+  pointer-events: none;
+  z-index: 9995;
+  display: flex;
+  gap: 24px;
+}
+#status-bar span { animation: status-blink 3s infinite; }
+#status-bar span:nth-child(2) { animation-delay: 1s; }
+#status-bar span:nth-child(3) { animation-delay: 2s; }
+@keyframes status-blink { 0%,80%,100%{opacity:1} 90%{opacity:0.3} }
+
+/* ── CLASSIFICATION STAMP ── */
+#classif {
+  position: fixed;
+  top: 16px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: #3a0000;
+  pointer-events: none;
+  z-index: 9995;
+  border: 1px solid #1a0000;
+  padding: 3px 16px;
+}
+
+/* ── MAIN CANVAS ── */
+#fx {
+  position:fixed; inset:0;
+  z-index: 1;
+}
+
+/* ── UI LAYER ── */
+#root {
+  position:fixed; inset:0;
+  display:flex; align-items:center; justify-content:center;
+  pointer-events:none;
+  z-index: 10;
+}
+
+/* ── PROMPT ── */
+#click-prompt {
+  pointer-events:all;
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap: 32px;
+}
+
+#prompt-logo {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.5em;
+  color: #3a0000;
+  text-align: center;
+  line-height: 2;
+  animation: fade-pulse 4s ease-in-out infinite;
+}
+
+#prompt-sigil {
+  width: 120px; height: 120px;
+  position: relative;
+  animation: sigil-spin 20s linear infinite;
+}
+
+#prompt-label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: #5a0000;
+  animation: float-prompt 3s ease-in-out infinite;
+  text-align: center;
+}
+
+@keyframes float-prompt {
+  0%,100% { transform:translateY(0); opacity:0.4; }
+  50%      { transform:translateY(-7px); opacity:0.8; }
+}
+@keyframes fade-pulse {
+  0%,100% { opacity:0.3 }
+  50%      { opacity:0.7 }
+}
+@keyframes sigil-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── TERMINAL ── */
+#terminal {
+  position:absolute; inset:0;
+  padding: clamp(20px,3.5vw,48px) clamp(24px,4.5vw,64px);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #e80400;
+  text-shadow: 0 0 8px #e8040088;
+  overflow:hidden;
+  opacity:0;
+  display:none;
+}
+
+/* ── DIALOG ── */
+#dialog {
+  display:none;
+  position:absolute;
+}
+
+/* ── REDIRECT ── */
+#redir {
+  display:none;
+  position:absolute; inset:0;
+  flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:20px;
+}
+
+/* ── KEYPRESS HINT (shown during command phase) ── */
+#key-hint {
+  position: fixed;
+  bottom: 42px; left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.35em;
+  color: #3a0000;
+  pointer-events: none;
+  z-index: 9995;
+  display: none;
+  animation: float-prompt 2.5s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Atmosphere layers -->
+<div id="cursor"></div>
+<div id="scanlines"></div>
+<div id="vignette"></div>
+<div id="glitch-line"></div>
+<div class="corner corner--tl"></div>
+<div class="corner corner--tr"></div>
+<div class="corner corner--bl"></div>
+<div class="corner corner--br"></div>
+
+<div id="classif">SCP FOUNDATION // SCiPNET // AUTHORIZED ACCESS ONLY</div>
+<div id="status-bar">
+  <span>NODE: SCP-NET-07</span>
+  <span>ENC: AES-256-GHOST</span>
+  <span>STATUS: SECURE</span>
+</div>
+<div id="key-hint">[ PRESS ANY KEY TO INPUT ]</div>
+
+<canvas id="fx"></canvas>
+
+<div id="root">
+  <div id="click-prompt" style="pointer-events:all;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:28px;">
+
+    <div id="prompt-logo">
+      SCP FOUNDATION<br>
+      SECURE COMPUTING INFRASTRUCTURE PROTOCOL NETWORK<br>
+      ── TERMINAL ACCESS ──
+    </div>
+
+    <span id="prompt-label">CLIQUE EM QUALQUER LUGAR</span>
+  </div>
+
+  <div id="terminal"></div>
+  <div id="dialog"></div>
+  <div id="redir"></div>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║                  ★  CONFIGURAÇÃO DA CUTSCENE  ★                    ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+const CFG = {
+  colors: {
+    bg:                 '#000000',
+    primary:            '#e80400',
+    dim:                '#6a0000',
+    bright:             '#ff2200',
+    accent:             '#e82e00',
+    dialog_bg:          '#0d0000',
+    dialog_border:      '#e80400',
+    dialog_header_bg:   '#e80400',
+    dialog_header_text: '#000000',
+    redir_text:         '#e80400',
+    redir_bar:          '#e80400',
+    prompt_text:        '#3a0000',
+  },
+
+  font: {
+    family:      '"Share Tech Mono", monospace',
+    size:        '13px',
+    line_height: '1.7',
+  },
+
+  prompt: {
+    texts:           ['CLIQUE EM QUALQUER LUGAR', 'APERTE QUALQUER TECLA'],
+    toggle_ms:       2800,
+    float_amplitude: '7px',
+    float_duration:  '3s',
+    font_size:       '11px',
+    letter_spacing:  '0.4em',
+  },
+
+  crt: {
+    scanline_opacity:   0.12,
+    vignette_strength:  0.55,
+    flicker:            true,
+    flicker_intensity:  0.055,
+    curvature:          true,
+    noise_strength:     0.018,
+    boot_anim_ms:       1100,
+  },
+
+  audio: {
+    // File-based audio — place these in the same folder as intro.html
+    crt_on_file:   'CRTon.mp3',
+    crt_off_file:  'CRToff.mp3',
+    key_file:      'keypress.mp3',
+    key_volume:    0.25,
+    crt_on_volume: 0.55,
+    crt_off_volume:0.55,
+  },
+
+  sys_prompt: 'C:\\SCIPNET>',
+
+  boot_lines: [
+    { text: 'SCiPNET BIOS v2.14 — SCP FOUNDATION SECURE NETWORK',              color: 'dim',    delay_ms: 0   },
+    { text: 'Copyright (C) 198█ SCP Foundation. As if we needed it.',          color: 'dim',    delay_ms: 80  },
+    { text: '',                                                                 color: 'dim',    delay_ms: 60  },
+    { text: 'Memory check ........... 640K  [OK]',                              color: 'dim',    delay_ms: 130 },
+    { text: 'Initializing secure protocols ........... [OK]',                   color: 'dim',    delay_ms: 140 },
+    { text: 'Loading encryption layer ........... [OK]',                        color: 'dim',    delay_ms: 130 },
+    { text: 'Connecting to SCiPNET backbone ........... [OK]',                  color: 'dim',    delay_ms: 150 },
+    { text: '',                                                                   color: 'dim',    delay_ms: 70  },
+    { text: '⚠  CLEARANCE REQUIRED. UNAUTHORIZED ACCESS VIOLATES DIRECTIVE 12.B2.', color: 'accent', delay_ms: 200 },
+    { text: '',                                                                   color: 'dim',    delay_ms: 80  },
+  ],
+
+  ascii_art: `
+  ██████  ██████ ██ ██████  ███  ██ ███████ ████████
+ ██      ██      ██ ██   ██ ████ ██ ██         ██
+  █████  ██      ██ ██████  ██ ████ █████      ██
+      ██ ██      ██ ██      ██  ███ ██         ██
+ ██████   ██████ ██ ██      ██   ██ ███████    ██`,
+  ascii_color: 'bright',
+  ascii_font_size: '8.5px',
+  ascii_after_ms: 350,
+
+  menu_lines: [
+    { text: '╔══════════════════════════════════════════════════════╗', color: 'bright', delay_ms: 0  },
+    { text: '║         S C i P N E T   M A I N   T E R M I N A L    ║', color: 'bright', delay_ms: 30 },
+    { text: '╚══════════════════════════════════════════════════════╝', color: 'bright', delay_ms: 30 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+    { text: '  [1]  Personnel Directory',                               color: 'primary',delay_ms: 50 },
+    { text: '  [2]  SCP Object Database',                               color: 'primary',delay_ms: 50 },
+    { text: '  [3]  Incident Reports',                                  color: 'primary',delay_ms: 50 },
+    { text: '  [4]  Secure Communications',                             color: 'primary',delay_ms: 50 },
+    { text: '  [5]  Research Archives',                                 color: 'primary',delay_ms: 50 },
+    { text: '  [6]  Containment Protocols',                             color: 'primary',delay_ms: 50 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+    { text: '  Type a command or select an option.',                    color: 'dim',    delay_ms: 40 },
+    { text: '',                                                          color: 'dim',    delay_ms: 20 },
+  ],
+
+  command: {
+    // Each keypress advances one character
+    text: 'access Elowen Vesper Registry SC6',
+    speed_ms:     60,     // base ms per char (with jitter)
+    speed_jitter: 0.6,
+    post_delay_ms: 1000,  // pause after last char before CRT off
+  },
+
+  crt_off: {
+    anim_ms:       500,
+    dark_pause_ms: 480,
+  },
+
+  // ── MÚLTIPLAS CAIXAS DE DIÁLOGO ────────────────────────────────────────
+  // intro_sound : toca ao abrir a caixa  → 'hm.mp3' | 'haha.mp3' | 'sigh.mp3' | null
+  // type_sound  : toca por caractere     → 'speech.mp3' | 'keypress.mp3' | null
+  // black_ms    : tela preta entre esta caixa e a próxima (0 = sem pausa escura)
+  // pause_ms    : pausa simples (sem tela preta) se black_ms for 0
+  dialogs: [
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', 
+      title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', 
+      body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', 
+      width: '520px', 
+      bottom_offset: '13%',
+      intro_sound: 'hm.mp3', 
+      intro_sound_volume: 0.7,
+      type_sound: 'speech.mp3', 
+      type_sound_volume: 0.35,
+      lines: [
+        { text: '*Naughty naughty.*',          delay_ms: 600 },
+        { text: "You're interested in me,", delay_ms: 60 },
+        { text: '* huh?*',    delay_ms: 300 },
+        { text: 'How', delay_ms: 0 },
+        { text: '* adorably* ', delay_ms: 0 },
+        { text: 'ingenous.', delay_ms: 0 },
+      ],
+      type_speed_ms: 62, type_jitter: 0.45, linger_ms: 2800, fade_ms: 480,
+      pause_ms: 0, black_ms: 1800,
+    },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', 
+      title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', 
+      body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', 
+      width: '520px', 
+      bottom_offset: '13%',
+      intro_sound: 'haha.mp3', 
+      intro_sound_volume: 0.6,
+      type_sound: 'speech.mp3', 
+      type_sound_volume: 0.35,
+      lines: [
+        { text: "Don't flatter yourself,", delay_ms: 50 },
+        { text: " though.",   delay_ms: 600 },
+      ],
+      type_speed_ms: 55, type_jitter: 0.4, linger_ms: 2200, fade_ms: 400,
+      pause_ms: 0, black_ms: 2200,
+    },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: 'sigh.mp3', intro_sound_volume: 0.6,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
+      lines: [
+        { text: 'I just hope that you have a high enough clearance to access my resgitry', delay_ms: 500 },
+        { text: '.', delay_ms: 500 },
+        { text: '.', delay_ms: 500 },
+        { text: '.', delay_ms: 500 },
+       
+      ],
+      type_speed_ms: 50, type_jitter: 0.4, linger_ms: 2400, fade_ms: 400,
+      pause_ms: 0, black_ms: 1500,
+    },
+    {
+      title: 'SYSTEM MESSAGE',
+      title_font_size: '9px', title_font_family: '"Share Tech Mono", monospace',
+      body_font_size: '17px', body_font_family: '"Meow Script", cursive',
+      body_line_height: '2.0', width: '520px', bottom_offset: '13%',
+      intro_sound: 'braam.mp3', intro_sound_volume: 0.3,
+      type_sound: 'speech.mp3', type_sound_volume: 0.35,
+      lines: [
+         { text: 'Get lost now,',                  delay_ms: 100 },
+        { text: ' before I lose my tamper.',         delay_ms: 600 },
+      ],
+      type_speed_ms: 58, type_jitter: 0.38, linger_ms: 3200, fade_ms: 600,
+      pause_ms: 0, black_ms: 0,
+    },
+  ],
+
+  redirect: {
+    text:        'REDIRECIONANDO PARA AUTENTICAÇÃO SEGURA...',
+    bar_fill_ms: 2400,
+    go_to:       'main.html',
+    fade_out_ms: 700,
+  },
+};
+
+// ── Resolve cor ───────────────────────────────────────────────────────────
+function col(name) { return CFG.colors[name] || name; }
+
+// ── Custom cursor ─────────────────────────────────────────────────────────
+const cursorEl = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursorEl.style.left = e.clientX + 'px';
+  cursorEl.style.top  = e.clientY + 'px';
+});
+
+// ── AUDIO (file-based) ────────────────────────────────────────────────────
+let keyAudioPool = [];
+const KEY_POOL_SIZE = 6;
+
+function preloadKeyAudio() {
+  for (let i = 0; i < KEY_POOL_SIZE; i++) {
+    const a = new Audio(CFG.audio.key_file);
+    a.volume = CFG.audio.key_volume;
+    a.load();
+    keyAudioPool.push(a);
+  }
+}
+
+let keyPoolIdx = 0;
+function playKey() {
+  const a = keyAudioPool[keyPoolIdx % KEY_POOL_SIZE];
+  keyPoolIdx++;
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch(e) {}
+}
+
+// Generic pooled sound player — creates a pool on first use per filename
+const soundPools = {};
+function playPooled(file, volume) {
+  if (!file) return;
+  if (!soundPools[file]) {
+    soundPools[file] = [];
+    for (let i = 0; i < 6; i++) {
+      const a = new Audio(file);
+      a.volume = volume ?? 0.5;
+      a.load();
+      soundPools[file].push(a);
+    }
+    soundPools[file]._idx = 0;
+  }
+  const pool = soundPools[file];
+  const a = pool[pool._idx % pool.length];
+  pool._idx++;
+  // Update volume in case it differs per dialog
+  a.volume = volume ?? 0.5;
+  try { a.currentTime = 0; a.play().catch(() => {}); } catch(e) {}
+}
+
+function playCRTOn() {
+  const a = new Audio(CFG.audio.crt_on_file);
+  a.volume = CFG.audio.crt_on_volume;
+  a.play().catch(() => {});
+}
+
+function playCRTOff() {
+  const a = new Audio(CFG.audio.crt_off_file);
+  a.volume = CFG.audio.crt_off_volume;
+  a.play().catch(() => {});
+}
+
+// ── CANVAS CRT EFFECTS ────────────────────────────────────────────────────
+const fxCanvas = document.getElementById('fx');
+const fxCtx    = fxCanvas.getContext('2d');
+let W, H;
+
+function resizeFX() {
+  W = fxCanvas.width  = window.innerWidth;
+  H = fxCanvas.height = window.innerHeight;
+}
+resizeFX();
+window.addEventListener('resize', resizeFX);
+
+let crtPhase    = 'off';
+let crtProgress = 0;
+let crtBootStart= 0;
+let flickerVal  = 1;
+let noiseFrame  = 0;
+
+function drawCRT(ts) {
+  fxCtx.clearRect(0, 0, W, H);
+  fxCtx.fillStyle = col('bg');
+  fxCtx.fillRect(0, 0, W, H);
+
+  if (crtPhase === 'booton') {
+    const elapsed = ts - crtBootStart;
+    crtProgress   = Math.min(elapsed / CFG.crt.boot_anim_ms, 1);
+    const eased   = easeOutCubic(crtProgress);
+    const clipH   = Math.round(H * eased);
+    const clipY   = Math.round((H - clipH) / 2);
+    document.getElementById('terminal').style.clipPath =
+      `inset(${clipY}px 0px ${H - clipY - clipH}px 0px)`;
+    if (crtProgress >= 1) {
+      crtPhase = 'on';
+      document.getElementById('terminal').style.clipPath = 'none';
+    }
+  }
+
+  if (crtPhase === 'bootoff') {
+    const elapsed = ts - crtBootStart;
+    crtProgress   = Math.min(elapsed / CFG.crt_off.anim_ms, 1);
+    const eased   = easeInCubic(crtProgress);
+    const clipH   = Math.round(H * (1 - eased));
+    const clipY   = Math.round((H - clipH) / 2);
+    document.getElementById('terminal').style.clipPath =
+      `inset(${clipY}px 0px ${H - clipY - clipH}px 0px)`;
+    if (crtProgress >= 1) {
+      crtPhase = 'off';
+      document.getElementById('terminal').style.clipPath = 'none';
+      document.getElementById('terminal').style.opacity  = '0';
+      onCRTOffDone();
+    }
+  }
+
+  if (CFG.crt.flicker && crtPhase === 'on') {
+    flickerVal = 1 - Math.random() * CFG.crt.flicker_intensity;
+  } else {
+    flickerVal = 1;
+  }
+
+  if (CFG.crt.noise_strength > 0 && crtPhase !== 'off') {
+    noiseFrame++;
+    if (noiseFrame % 2 === 0) {
+      const imgd = fxCtx.createImageData(W, H);
+      const d    = imgd.data;
+      const str  = CFG.crt.noise_strength * 255;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = (Math.random() * str) | 0;
+        d[i]=d[i+1]=d[i+2]=v; d[i+3]=35;
+      }
+      fxCtx.putImageData(imgd, 0, 0);
+    }
+  }
+
+  if (CFG.crt.curvature) {
+    const cx = fxCtx.createRadialGradient(W/2,H/2,0, W/2,H/2,Math.max(W,H)*0.6);
+    cx.addColorStop(0,   'rgba(0,0,0,0)');
+    cx.addColorStop(0.7, 'rgba(0,0,0,0)');
+    cx.addColorStop(1,   'rgba(0,0,0,0.38)');
+    fxCtx.fillStyle = cx;
+    fxCtx.fillRect(0, 0, W, H);
+  }
+
+  const term = document.getElementById('terminal');
+  if (term.style.display !== 'none') {
+    term.style.opacity =
+      (crtPhase === 'on' ? flickerVal : crtProgress > 0 ? flickerVal * crtProgress : 0).toFixed(3);
+  }
+
+  requestAnimationFrame(drawCRT);
+}
+requestAnimationFrame(drawCRT);
+
+function easeOutCubic(t) { return 1 - Math.pow(1-t, 3); }
+function easeInCubic(t)  { return t * t * t; }
+
+// ── PROMPT ────────────────────────────────────────────────────────────────
+const promptEl = document.getElementById('prompt-label');
+let promptIdx = 0;
+promptEl.textContent = CFG.prompt.texts[0];
+setInterval(() => {
+  promptIdx = (promptIdx + 1) % CFG.prompt.texts.length;
+  promptEl.textContent = CFG.prompt.texts[promptIdx];
+}, CFG.prompt.toggle_ms);
+
+// ── TERMINAL SETUP ────────────────────────────────────────────────────────
+const termEl = document.getElementById('terminal');
+
+function addLine(text, colorName) {
+  if (text === '') { termEl.appendChild(document.createElement('br')); return; }
+  const d = document.createElement('div');
+  d.textContent = text;
+  d.style.color = col(colorName || 'primary');
+  d.style.textShadow = `0 0 7px ${col(colorName || 'primary')}55`;
+  termEl.appendChild(d);
+  termEl.scrollTop = termEl.scrollHeight;
+}
+
+// ── START ─────────────────────────────────────────────────────────────────
+let started = false;
+function onStart() {
+  if (started) return; started = true;
+  preloadKeyAudio();
+
+  const cp = document.getElementById('click-prompt');
+  cp.style.transition = 'opacity 0.6s';
+  cp.style.opacity    = '0';
+  setTimeout(() => cp.style.display = 'none', 600);
+
+  try {
+    const el = document.documentElement;
+    (el.requestFullscreen || el.webkitRequestFullscreen || (()=>{})).call(el);
+  } catch(e){}
+
+  termEl.style.display = 'block';
+  termEl.style.opacity = '0';
+
+  setTimeout(() => {
+    playCRTOn();
+    crtPhase     = 'booton';
+    crtBootStart = performance.now();
+    setTimeout(runBoot, 80);
+  }, 180);
+}
+document.addEventListener('click',   onStart, { once: true });
+document.addEventListener('keydown', onStart, { once: true });
+
+// ── BOOT ──────────────────────────────────────────────────────────────────
+function runBoot() {
+  let acc = 0;
+  CFG.boot_lines.forEach(({ text, color, delay_ms }) => {
+    acc += delay_ms;
+    setTimeout(() => addLine(text, color), acc);
+  });
+
+  acc += 180;
+  setTimeout(() => {
+    const pre = document.createElement('pre');
+    pre.textContent = CFG.ascii_art;
+    pre.style.cssText = `
+      font-size: ${CFG.ascii_font_size};
+      line-height: 1.2;
+      color: ${col(CFG.ascii_color)};
+      text-shadow: 0 0 12px ${col(CFG.ascii_color)}66;
+      white-space: pre;
+      margin: 8px 0 10px;
+      letter-spacing: 0.02em;
+    `;
+    termEl.appendChild(pre);
+    termEl.scrollTop = termEl.scrollHeight;
+  }, acc);
+
+  acc += CFG.ascii_after_ms;
+  setTimeout(runMenu, acc);
+}
+
+// ── MENU ──────────────────────────────────────────────────────────────────
+function runMenu() {
+  let acc = 0;
+  CFG.menu_lines.forEach(({ text, color, delay_ms }) => {
+    acc += delay_ms;
+    setTimeout(() => addLine(text, color), acc);
+  });
+  acc += 180;
+  setTimeout(runCommandPhase, acc);
+}
+
+// ── COMMAND PHASE (keypress-driven) ───────────────────────────────────────
+function runCommandPhase() {
+  const line = document.createElement('div');
+  line.style.cssText = 'display:flex; gap:4px; align-items:baseline;';
+
+  const promptSpan = document.createElement('span');
+  promptSpan.textContent = CFG.sys_prompt + ' ';
+  promptSpan.style.color = col('dim');
+
+  const typedSpan = document.createElement('span');
+  typedSpan.style.color = col('primary');
+  typedSpan.style.textShadow = `0 0 8px ${col('primary')}88`;
+
+  const cursorSpan = document.createElement('span');
+  cursorSpan.style.cssText = `
+    display:inline-block;
+    width:0.55em; height:0.9em;
+    background:${col('primary')};
+    vertical-align:text-bottom;
+    margin-left:1px;
+    animation: blink-cur 0.75s step-end infinite;
+    box-shadow: 0 0 7px ${col('primary')};
+  `;
+  document.head.insertAdjacentHTML('beforeend',
+    `<style>@keyframes blink-cur{0%,100%{opacity:1}50%{opacity:0}}</style>`);
+
+  line.appendChild(promptSpan);
+  line.appendChild(typedSpan);
+  line.appendChild(cursorSpan);
+  termEl.appendChild(line);
+  termEl.scrollTop = termEl.scrollHeight;
+
+  // Show keypress hint
+  document.getElementById('key-hint').style.display = 'block';
+
+  const cmd = CFG.command.text;
+  let charIdx = 0;
+  let commandDone = false;
+
+  function handleKeypress(e) {
+    if (commandDone) return;
+    // Ignore modifier-only keys
+    if (['Shift','Control','Alt','Meta','CapsLock','Tab'].includes(e.key)) return;
+
+    playKey();
+    charIdx++;
+    typedSpan.textContent = cmd.slice(0, charIdx);
+    termEl.scrollTop = termEl.scrollHeight;
+
+    if (charIdx >= cmd.length) {
+      commandDone = true;
+      document.removeEventListener('keydown', handleKeypress);
+      cursorSpan.remove();
+      document.getElementById('key-hint').style.display = 'none';
+      setTimeout(runCRTOff, CFG.command.post_delay_ms);
+    }
+  }
+
+  document.addEventListener('keydown', handleKeypress);
+
+  // Also allow mouse click to advance characters
+  function handleClick() {
+    if (commandDone) return;
+    playKey();
+    charIdx++;
+    typedSpan.textContent = cmd.slice(0, charIdx);
+    termEl.scrollTop = termEl.scrollHeight;
+
+    if (charIdx >= cmd.length) {
+      commandDone = true;
+      document.removeEventListener('keydown', handleKeypress);
+      document.removeEventListener('click', handleClick);
+      cursorSpan.remove();
+      document.getElementById('key-hint').style.display = 'none';
+      setTimeout(runCRTOff, CFG.command.post_delay_ms);
+    }
+  }
+  document.addEventListener('click', handleClick);
+}
+
+// ── CRT OFF ───────────────────────────────────────────────────────────────
+function runCRTOff() {
+  playCRTOff();
+  crtPhase     = 'bootoff';
+  crtBootStart = performance.now();
+}
+
+function onCRTOffDone() {
+  termEl.style.display = 'none';
+  setTimeout(() => showDialogChain(0), CFG.crt_off.dark_pause_ms);
+}
+
+// ── DIALOG CHAIN ──────────────────────────────────────────────────────────
+function showDialogChain(idx) {
+  if (idx >= CFG.dialogs.length) { showRedirect(); return; }
+  const D = CFG.dialogs[idx];
+  showOneDialog(D, () => {
+    const blackMs = D.black_ms ?? 0;
+    if (blackMs > 0) {
+      // Box is already faded out — screen is black. Just wait, then show next.
+      setTimeout(() => showDialogChain(idx + 1), blackMs);
+    } else {
+      setTimeout(() => showDialogChain(idx + 1), D.pause_ms ?? 300);
+    }
+  });
+}
+
+function showOneDialog(D, onDone) {
+  const box = document.getElementById('dialog');
+  // Reset box for reuse
+  box.innerHTML = '';
+
+  box.style.cssText = `
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: ${D.bottom_offset};
+    transform: translateX(-50%) translateY(16px);
+    width: min(${D.width}, 90vw);
+    background: ${col('dialog_bg')};
+    border: 1px solid ${col('dialog_border')};
+    box-shadow:
+      0 0 0 1px #1a000055,
+      0 0 30px ${col('dialog_border')}44,
+      0 0 80px ${col('dialog_border')}18,
+      inset 0 0 30px rgba(0,0,0,0.8);
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    z-index: 500;
+  `;
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.textContent = D.title;
+  hdr.style.cssText = `
+    background: ${col('dialog_header_bg')};
+    color: ${col('dialog_header_text')};
+    font-family: ${D.title_font_family};
+    font-size: ${D.title_font_size};
+    letter-spacing: 0.45em;
+    padding: 6px 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `;
+  const dot = document.createElement('span');
+  dot.style.cssText = `
+    width:5px;height:5px;border-radius:50%;
+    background:#000;display:inline-block;
+    animation:blink-cur 1s step-end infinite;
+  `;
+  hdr.prepend(dot);
+
+  const topLine = document.createElement('div');
+  topLine.style.cssText = `
+    height:1px;
+    background:linear-gradient(to right, transparent, ${col('dialog_border')}88, transparent);
+  `;
+
+  const body = document.createElement('div');
+  body.style.cssText = `
+    padding: 22px 26px 24px;
+    color: ${col('primary')};
+    font-family: ${D.body_font_family};
+    font-size: ${D.body_font_size};
+    line-height: ${D.body_line_height};
+    text-shadow: 0 0 10px ${col('primary')}44;
+    min-height: 70px;
+    white-space: pre-wrap;
+  `;
+
+  box.appendChild(hdr);
+  box.appendChild(topLine);
+  box.appendChild(body);
+
+  // Play intro sound then fade in
+  if (D.intro_sound) {
+    const introAudio = new Audio(D.intro_sound);
+    introAudio.volume = D.intro_sound_volume ?? 0.7;
+    introAudio.play().catch(() => {});
+  }
+
+  void box.offsetWidth;
+  box.style.opacity   = '1';
+  box.style.transform = 'translateX(-50%) translateY(0)';
+
+  function parseSegments(raw) {
+    const segs = [];
+    const re   = /\*(.*?)\*/g;
+    let last=0, m;
+    while ((m = re.exec(raw)) !== null) {
+      if (m.index > last) segs.push({ text: raw.slice(last, m.index), italic: false });
+      segs.push({ text: m[1], italic: true });
+      last = re.lastIndex;
+    }
+    if (last < raw.length) segs.push({ text: raw.slice(last), italic: false });
+    return segs;
+  }
+
+  const lineNodes = D.lines.map(() => {
+    const span = document.createElement('span');
+    body.appendChild(span);
+    return span;
+  });
+
+  const cur = document.createElement('span');
+  cur.style.cssText = `
+    display:inline-block;
+    width:0.5em; height:0.85em;
+    background:${col('primary')};
+    vertical-align:text-bottom;
+    margin-left:2px;
+    box-shadow:0 0 6px ${col('primary')};
+    animation:blink-cur 0.75s step-end infinite;
+  `;
+
+  function typeLine(lineIdx, done) {
+    const raw  = D.lines[lineIdx].text;
+    const segs = parseSegments(raw);
+    const node = lineNodes[lineIdx];
+
+    if (lineIdx > 0) node.appendChild(document.createTextNode(' '));
+    node.appendChild(cur);
+
+    const chars = [];
+    segs.forEach(({ text, italic }) => {
+      for (const ch of text) chars.push({ ch, italic });
+    });
+
+    let charIdx=0, curSpan=null, curItalic=null;
+
+    function typeChar() {
+      if (charIdx >= chars.length) { done(); return; }
+      const { ch, italic } = chars[charIdx++];
+      if (curSpan === null || italic !== curItalic) {
+        curSpan = document.createElement('span');
+        if (italic) {
+          curSpan.style.fontStyle = 'italic';
+          curSpan.style.color     = col('bright');
+          curSpan.style.textShadow= `0 0 12px ${col('bright')}88`;
+        }
+        node.insertBefore(curSpan, cur);
+        curItalic = italic;
+      }
+      curSpan.textContent += ch;
+
+      // Play per-character sound (speech.mp3 or whatever is set)
+      if (D.type_sound) playPooled(D.type_sound, D.type_sound_volume);
+
+      const jitter = 1 + (Math.random()-0.5)*D.type_jitter;
+      setTimeout(typeChar, D.type_speed_ms * jitter);
+    }
+    typeChar();
+  }
+
+  function chainLines(idx) {
+    if (idx >= D.lines.length) {
+      cur.remove();
+      setTimeout(() => {
+        box.style.transition = `opacity ${D.fade_ms}ms ease, transform ${D.fade_ms}ms ease`;
+        box.style.opacity    = '0';
+        box.style.transform  = 'translateX(-50%) translateY(16px)';
+        setTimeout(onDone, D.fade_ms);
+      }, D.linger_ms);
+      return;
+    }
+    setTimeout(() => typeLine(idx, () => chainLines(idx+1)), D.lines[idx].delay_ms);
+  }
+
+  chainLines(0);
+}
+
+// ── REDIRECT ──────────────────────────────────────────────────────────────
+function showRedirect() {
+  const rdiv = document.getElementById('redir');
+  rdiv.style.cssText = `
+    display:flex;
+    position:absolute;inset:0;
+    flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:20px;
+    font-family:${CFG.font.family};
+    font-size:10px;
+    letter-spacing:0.35em;
+    color:${col('redir_text')};
+    text-shadow:0 0 10px ${col('redir_text')}88;
+    z-index:600;
+  `;
+
+  const txt = document.createElement('div');
+  txt.textContent = CFG.redirect.text;
+  txt.style.cssText = `
+    opacity:0;
+    animation: fade-in-txt 0.8s ease forwards;
+  `;
+  document.head.insertAdjacentHTML('beforeend',
+    `<style>@keyframes fade-in-txt{to{opacity:1}}</style>`);
+
+  const barWrap = document.createElement('div');
+  barWrap.style.cssText = `
+    width:240px; height:4px;
+    border:1px solid ${col('dim')};
+    position:relative; overflow:hidden;
+    box-shadow: 0 0 8px ${col('dim')}44;
+  `;
+
+  const bar = document.createElement('div');
+  bar.style.cssText = `
+    height:100%; width:0%;
+    background:${col('redir_bar')};
+    box-shadow:0 0 10px ${col('redir_bar')};
+    transition:width ${CFG.redirect.bar_fill_ms}ms linear;
+  `;
+
+  // Percentage counter
+  const pct = document.createElement('div');
+  pct.style.cssText = `font-size:9px;letter-spacing:0.2em;color:${col('dim')};margin-top:4px;`;
+  pct.textContent = '0%';
+
+  barWrap.appendChild(bar);
+  rdiv.appendChild(txt);
+  rdiv.appendChild(barWrap);
+  rdiv.appendChild(pct);
+
+  void bar.offsetWidth;
+  setTimeout(() => bar.style.width = '100%', 30);
+
+  // Animate counter
+  let pctVal = 0;
+  const pctInterval = setInterval(() => {
+    pctVal = Math.min(pctVal + 1, 100);
+    pct.textContent = pctVal + '%';
+    if (pctVal >= 100) clearInterval(pctInterval);
+  }, CFG.redirect.bar_fill_ms / 100);
+
+  setTimeout(() => {
+    document.body.style.transition = `opacity ${CFG.redirect.fade_out_ms}ms ease`;
+    document.body.style.opacity    = '0';
+    setTimeout(() => window.location.href = CFG.redirect.go_to,
+      CFG.redirect.fade_out_ms + 50);
+  }, CFG.redirect.bar_fill_ms + 200);
+}
+</script>
+</body>
+</html>
