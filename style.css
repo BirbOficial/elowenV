@@ -397,22 +397,22 @@ body:hover #cursor-ring { opacity: 0.7; }
   border-radius: 2px;
   cursor: none;
   display: inline-block;
-  height: 0.85em;
-  vertical-align: middle;
+  height: 0.75em;
+  vertical-align: baseline;  
   white-space: nowrap;
   overflow: hidden;
-  max-width: 160px;        /* impede que textos longos estiquem demais */
+  max-width: 160px;
   min-width: 2.5ch;
   padding: 0 4px;
-  position: relative;
-  top: -0.05em;
   line-height: 1;
+  position: static;          
 }
 .traits { list-style:none; display:flex; flex-direction:column; gap:9px; margin-top:6px; }
 .traits li {
   font-family: 'Rajdhani', sans-serif;
   font-size: 15px; color: var(--white-dim);
   line-height: 1.6; display:flex; gap:10px;
+  align-items: baseline;  
 }
 .traits li::before { content:'▸'; color:var(--red); flex-shrink:0; }
 
