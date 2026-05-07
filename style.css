@@ -391,9 +391,19 @@ body:hover #cursor-ring { opacity: 0.7; }
 .sec-body strong { color: var(--white); font-weight:600; }
 .sec-body .kw { color: var(--red); font-weight:600; }
 .sec-body .redacted {
-  background: #550000; color: transparent;
-  user-select: none; border-radius: 2px;
-  padding: 0 4px; cursor: none;
+  background: #550000;
+  color: transparent;
+  user-select: none;
+  border-radius: 2px;
+  padding: 0 6px;
+  cursor: none;
+  display: inline-block;
+  height: 1em;
+  vertical-align: middle;
+  min-width: 2ch;
+  line-height: 1;
+  position: relative;
+  top: -0.05em;
 }
 .traits { list-style:none; display:flex; flex-direction:column; gap:9px; margin-top:6px; }
 .traits li {
