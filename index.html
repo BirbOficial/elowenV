@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" type="image/gif" href="terminallogo.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SCiPNET TERMINAL</title>
@@ -94,9 +95,9 @@ html, body { width:100%; height:100%; overflow:hidden; background:#000; cursor:n
 <div class="corner corner--br"></div>
 <div id="classif">SCP FOUNDATION // SCiPNET // AUTHORIZED ACCESS ONLY</div>
 <div id="status-bar">
-  <span>NODE: SCP-NET-07</span>
+  <span>NODE: SCP-NET-05</span>
   <span>ENC: AES-256-GHOST</span>
-  <span>STATUS: SECURE</span>
+  <span>STATUS: ENCRIPTED</span>
 </div>
 <div id="key-hint">[ PRESS ANY KEY TO INPUT ]</div>
 <canvas id="fx"></canvas>
@@ -127,8 +128,8 @@ const CFG = {
   audio: { crt_on_file:'CRTon.mp3', crt_off_file:'CRToff.mp3', key_file:'keypress.mp3', key_volume:0.25, crt_on_volume:0.55, crt_off_volume:0.55 },
   sys_prompt: 'C:\\SCIPNET>',
   boot_lines: [
-    { text: 'SCiPNET BIOS v2.14 — SCP FOUNDATION SECURE NETWORK',              color: 'dim',    delay_ms: 0   },
-    { text: 'Copyright (C) 198█ SCP Foundation. As if we needed it.',          color: 'dim',    delay_ms: 80  },
+    { text: 'SCiPNET BIOS v2.33 — SCP FOUNDATION SECURE NETWORK',              color: 'dim',    delay_ms: 0   },
+    { text: 'Copyright (C) 1947 SCP Foundation. As if we needed it.',          color: 'dim',    delay_ms: 80  },
     { text: '',                                                                 color: 'dim',    delay_ms: 60  },
     { text: 'Memory check ........... 640K  [OK]',                              color: 'dim',    delay_ms: 130 },
     { text: 'Initializing secure protocols ........... [OK]',                   color: 'dim',    delay_ms: 140 },
@@ -162,7 +163,7 @@ const CFG = {
     { text: '  Type a command or select an option.',                    color: 'dim',    delay_ms: 40 },
     { text: '',                                                          color: 'dim',    delay_ms: 20 },
   ],
-  command: { text: 'access Elowen Vesper Registry SC6', speed_ms: 60, speed_jitter: 0.6, post_delay_ms: 1000 },
+  command: { text: 'access Elowen Vesper Registry SCVI', speed_ms: 60, speed_jitter: 0.6, post_delay_ms: 1000 },
   crt_off: { anim_ms: 500, dark_pause_ms: 480 },
 
   dialogs: [
@@ -174,8 +175,8 @@ const CFG = {
       intro_sound: 'hm.mp3', intro_sound_volume: 0.7,
       type_sound: 'speech.mp3', type_sound_volume: 0.35,
       lines: [
-        { text: '*Naughty naughty.*',        delay_ms: 1200 },
-        { text: "You're interested in me,",  delay_ms: 60  },
+        { text: '*Naughty naughty.*',        delay_ms: 2400 },
+        { text: "You're interested in me,",  delay_ms: 500  },
         { text: '* huh?*',                   delay_ms: 300 },
       ],
       type_speed_ms: 62, type_jitter: 0.45, linger_ms: 2800, fade_ms: 480,
