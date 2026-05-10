@@ -95,7 +95,7 @@ document.querySelectorAll('button, input, a, .info-cell, .redacted').forEach(el 
   resize();
   window.addEventListener('resize', resize);
 
-  const COUNT = 30;
+  const COUNT = 60;
   const particles = [];
 
   function makeParticle() {
@@ -488,3 +488,75 @@ function onScrollGIF() {
   const fi = Math.floor(progress * (gifFrames.length - 1));
   if (fi !== currentGifFrame) { currentGifFrame = fi; renderGifFrame(fi); }
 }
+
+// ══════════════════════════════════════════
+// REDACTED — efeito de estática no hover
+// ══════════════════════════════════════════
+function initRedactedStatic() {
+  document.querySelectorAll('.redacted').forEach(el => {
+    // Garante position:relative para o canvas absoluto funcionar
+    el.style.position = 'relative';
+
+    // Cria canvas de estática
+    const cv = document.createElement('canvas');
+    cv.className = 'redacted-static';
+    cv.style.cssText = `
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 2px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.12s ease;
+    `;
+    el.appendChild(cv);
+
+    let animId = null;
+
+    function drawStatic() {
+      const w = cv.offsetWidth;
+      const h = cv.offsetHeight;
+      if (w === 0 || h === 0) return;
+      cv.width  = w;
+      cv.height = h;
+      const ctx = cv.getContext('2d');
+      const img = ctx.createImageData(w, h);
+      const d   = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        // Tons de vermelho escuro aleatório — combina com #550000
+        const v = Math.random() < 0.55 ? 0 : (Math.random() * 80) | 0;
+        d[i]     = 60 + v;   // R
+        d[i + 1] = 0;         // G
+        d[i + 2] = 0;         // B
+        d[i + 3] = Math.random() < 0.4 ? 0 : 180 + ((Math.random() * 75) | 0); // A
+      }
+      ctx.putImageData(img, 0, 0);
+      animId = requestAnimationFrame(drawStatic);
+    }
+
+    el.addEventListener('mouseenter', () => {
+      cv.style.opacity = '1';
+      drawStatic();
+    });
+
+    el.addEventListener('mouseleave', () => {
+      cv.style.opacity = '0';
+      if (animId) { cancelAnimationFrame(animId); animId = null; }
+    });
+  });
+}
+
+// Chama após o site ser lançado
+// Se já existe launchSite(), adicione initRedactedStatic() dentro dela.
+// Caso contrário, chame direto:
+document.addEventListener('DOMContentLoaded', () => {
+  // Aguarda o main-site ficar visível (pode levar alguns segundos após login)
+  const observer = new MutationObserver(() => {
+    if (document.getElementById('main-site').style.display !== 'none') {
+      initRedactedStatic();
+      observer.disconnect();
+    }
+  });
+  observer.observe(document.getElementById('main-site'), { attributes: true, attributeFilter: ['style'] });
+});
