@@ -37,7 +37,6 @@ html, body {
   transition: width 0.15s, height 0.15s, opacity 0.15s, border-color 0.15s;
   opacity: 0.7;
 }
-/* crosshair lines */
 #cursor-ring::before,
 #cursor-ring::after {
   content: '';
@@ -390,6 +389,8 @@ body:hover #cursor-ring { opacity: 0.7; }
 }
 .sec-body strong { color: var(--white); font-weight:600; }
 .sec-body .kw { color: var(--red); font-weight:600; }
+
+/* ── REDACTED ── */
 .sec-body .redacted {
   background: #550000;
   color: transparent;
@@ -397,17 +398,25 @@ body:hover #cursor-ring { opacity: 0.7; }
   border-radius: 2px;
   cursor: none;
   display: inline;
-  padding: 0.1em 6px;
-  white-space: nowrap;
+  padding: 0.1em 5px;
 }
+
+/* ── TRAITS LIST ── */
 .traits { list-style:none; display:flex; flex-direction:column; gap:9px; margin-top:6px; }
 .traits li {
-  font-family: 'Rajdhani', sans-serif;
-  font-size: 15px; color: var(--white-dim);
-  line-height: 1.6; display:flex; gap:10px;
+  display: flex;
+  gap: 10px;
   align-items: flex-start;
 }
-.traits li::before { content:'▸'; color:var(--red); flex-shrink:0; }
+.traits li::before { content:'▸'; color:var(--red); flex-shrink:0; line-height: 1.6; }
+.traits li .li-text {
+  flex: 1;
+  min-width: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 15px;
+  color: var(--white-dim);
+  line-height: 1.6;
+}
 
 .site-footer {
   margin-top: 80px;
@@ -444,32 +453,4 @@ body::after {
     rgba(0,0,0,.06) 3px, rgba(0,0,0,.06) 4px
   );
   pointer-events: none; z-index: 9998;
-}
-
-/* ── CURSOR TRAILS ── */
-.cursor-trail-dot {
-  position: fixed;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--red);
-  pointer-events: none;
-  z-index: 99990;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 6px var(--red), 0 0 12px var(--red-glow);
-  transition: opacity 0.18s ease;
-}
-
-.cursor-trail-ring {
-  position: fixed;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid #ff4444;
-  pointer-events: none;
-  z-index: 99989;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 0 8px rgba(255, 68, 68, 0.6);
-  transition: opacity 0.12s ease;
 }
